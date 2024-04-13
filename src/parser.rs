@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io;
-use std::io::{Seek, SeekFrom};
+use std::io::Seek;
 
 // cputype
 const CPU_ARCH_MASK: i32 = 0xff000000u32 as i32;   // Mask for architecture bits
@@ -126,23 +126,27 @@ const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
 const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
 
 // Check that the file size is at least mach_header.size() bytes (=28).
-// TODO: refactor this function with scroll or by reading the path. its trash right now.
+// TODO: consider refactoring into a non boolean function... this requires change tto tests.
 fn is_file_size_ok(file: &mut File) -> bool {
-    let mach_header_size = 28;
-    let file_size = file.seek(SeekFrom::End(0));
-    file.seek(SeekFrom::Start(0)).expect("TODO: panic message");
-    match file_size {
-        Ok(size) => {
-            size >= mach_header_size
+    let mach_o_header_size = 28;
+    let file_metadata = file.metadata();
+    match file_metadata {
+        Ok(metadata) => {
+            metadata.len() >= mach_o_header_size
         }
         Err(e) => {
-            eprintln!("Failed to get the file size: {}", e);
+            eprintln!("Failed to get file meta-data: {}", e);
             false
         }
     }
 }
 
 pub fn parse(file: &mut File) {
+    if is_file_size_ok(file) {
+
+    } else {
+        eprintln!("File size is too small!");
+    }
 
 }
 
