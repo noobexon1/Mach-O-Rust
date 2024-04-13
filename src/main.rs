@@ -8,3 +8,4 @@ fn main() {
     run(&args);
 }
 
+//TODO: find a normal serialization crate lol XD

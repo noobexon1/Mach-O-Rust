@@ -1,3 +1,7 @@
+use std::fs::File;
+use std::io;
+use std::io::{Seek, SeekFrom};
+
 // cputype
 const CPU_ARCH_MASK: i32 = 0xff000000u32 as i32;   // Mask for architecture bits
 const CPU_ARCH_ABI64: i32 = 0x01000000u32 as i32;  // 64-bit ABI
@@ -121,7 +125,51 @@ pub struct MachHeader64 {
 const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
 const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
 
-#[cfg(test)]
-mod tests {}
+// Check that the file size is at least mach_header.size() bytes (=28).
+// TODO: refactor this function with scroll or by reading the path. its trash right now.
+fn is_file_size_ok(file: &mut File) -> bool {
+    let mach_header_size = 28;
+    let file_size = file.seek(SeekFrom::End(0));
+    file.seek(SeekFrom::Start(0)).expect("TODO: panic message");
+    match file_size {
+        Ok(size) => {
+            size >= mach_header_size
+        }
+        Err(e) => {
+            eprintln!("Failed to get the file size: {}", e);
+            false
+        }
+    }
+}
 
-// TODO: make tests according to the info we find
+pub fn parse(file: &mut File) {
+
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+    use std::io::{self};
+    use std::path::PathBuf;
+
+    use super::*;
+
+    // Helper function to open a test file
+    fn open_test_file(filename: &str) -> io::Result<File> {
+        let test_file_path = PathBuf::from(format!("test_files/{}", filename));
+        File::open(test_file_path)
+    }
+
+    #[test]
+    fn test_file_size_too_small() {
+        let mut file = open_test_file("file_size_test_too_small.txt").expect("file should open!");
+        assert!(!is_file_size_ok(&mut file));
+    }
+
+    #[test]
+    fn test_file_size_ok() {
+        let mut file = open_test_file("file_size_test_ok.txt").expect("file should open!");
+        assert!(is_file_size_ok(&mut file));
+    }
+
+}

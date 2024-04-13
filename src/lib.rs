@@ -3,6 +3,8 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+use crate::parser::parse;
+
 mod parser;
 
 /// A command-line tool written in rust to view and explore files with mach-o format.
@@ -18,7 +20,7 @@ pub struct Args {
 pub fn run(args: &Args) {
     match File::open(&args.input.as_path()) {
         Ok(mut file) => {
-            println!("File opened successfully: {:?}", args.input);
+            parse(&mut file);
         },
         Err(e) => {
             eprintln!("Failed to open input file: {}", e);
