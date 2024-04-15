@@ -1,4 +1,3 @@
-use std::fs::File;
 use std::io;
 use std::io::Read;
 
@@ -38,7 +37,7 @@ enum MachHeaderVariant {
     Mach64(MachHeader64),
 }
 
-pub fn parse(file: &mut File) {
+pub fn parse<R: Read>(file: &mut R) {
     let header =  parse_header(file);
     match header {
         Ok(header) => header,
@@ -202,6 +201,12 @@ mod tests {
             let mut cursor = Cursor::new(data);
             let result = parse_header(&mut cursor);
             assert!(result.is_ok(), "Failed to parse known valid magic number: 0x{:X}", magic);
+
+            // Test with LittleEndian if applicable
+            let data = create_mock_header::<LittleEndian>(*magic, *is_64);
+            let mut cursor = Cursor::new(data);
+            let result = parse_header(&mut cursor);
+            assert!(result.is_ok(), "Failed to parse with LittleEndian for magic number: 0x{:X}", magic);
 
             match result.unwrap() {
                 MachHeaderVariant::Mach32(_) if !is_64 => (),
