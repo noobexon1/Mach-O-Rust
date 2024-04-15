@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io;
-use std::io::Seek;
+use std::io::{Read, Seek};
+
+use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 
 // cputype
 const CPU_ARCH_MASK: i32 = 0xff000000u32 as i32;   // Mask for architecture bits
@@ -96,6 +98,7 @@ const MH_APP_EXTENSION_SAFE: u32 = 0x02000000;    // Linked for use in an applic
 
 // mach_header
 #[repr(C)]
+#[derive(Debug)]
 pub struct MachHeader {
     pub magic: u32,
     pub cputype: i32,
@@ -111,6 +114,7 @@ const MH_CIGAM: u32 = 0xcefaedfe; // Little endian, 32 bit Mach-O
 
 // mach_header_64
 #[repr(C)]
+#[derive(Debug)]
 pub struct MachHeader64 {
     pub magic: u32,
     pub cputype: i32,
@@ -125,8 +129,78 @@ pub struct MachHeader64 {
 const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
 const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
 
-pub fn parse(file: &mut File) {
+#[derive(Debug)]
+enum MachHeaderVariant {
+    Mach32(MachHeader),
+    Mach64(MachHeader64),
+}
 
+pub fn parse(file: &mut File) {
+    let header =  parse_header(file);
+    match header {
+        Ok(header) => header,
+        Err(e) => panic!("Error on header parsing: {e}"),
+    };
+    println!("Parsed Header: {:?}", header);
+}
+
+// TODO: refactor to a more generic approach.
+fn parse_header(file: &mut File) -> Result<MachHeaderVariant, &'static str> {
+    let magic = file.read_u32::<BigEndian>()?;
+
+    match magic {
+        MH_MAGIC => {
+            let header = MachHeader {
+                magic,
+                cputype: file.read_i32::<BigEndian>()?,
+                cpusubtype: file.read_i32::<BigEndian>()?,
+                filetype: file.read_u32::<BigEndian>()?,
+                ncmds: file.read_u32::<BigEndian>()?,
+                sizeofcmds: file.read_u32::<BigEndian>()?,
+                flags: file.read_u32::<BigEndian>()?,
+            };
+            Ok(MachHeaderVariant::Mach32(header))
+        },
+        MH_MAGIC_64 => {
+            let header = MachHeader64 {
+                magic,
+                cputype: file.read_i32::<BigEndian>()?,
+                cpusubtype: file.read_i32::<BigEndian>()?,
+                filetype: file.read_u32::<BigEndian>()?,
+                ncmds: file.read_u32::<BigEndian>()?,
+                sizeofcmds: file.read_u32::<BigEndian>()?,
+                flags: file.read_u32::<BigEndian>()?,
+                reserved: file.read_u32::<BigEndian>()?,
+            };
+            Ok(MachHeaderVariant::Mach64(header))
+        },
+        MH_CIGAM => {
+            let header = MachHeader {
+                magic,
+                cputype: file.read_i32::<LittleEndian>()?,
+                cpusubtype: file.read_i32::<LittleEndian>()?,
+                filetype: file.read_u32::<LittleEndian>()?,
+                ncmds: file.read_u32::<LittleEndian>()?,
+                sizeofcmds: file.read_u32::<LittleEndian>()?,
+                flags: file.read_u32::<LittleEndian>()?,
+            };
+            Ok(MachHeaderVariant::Mach32(header))
+        },
+        MH_CIGAM_64 => {
+            let header = MachHeader64 {
+                magic,
+                cputype: file.read_i32::<LittleEndian>()?,
+                cpusubtype: file.read_i32::<LittleEndian>()?,
+                filetype: file.read_u32::<LittleEndian>()?,
+                ncmds: file.read_u32::<LittleEndian>()?,
+                sizeofcmds: file.read_u32::<LittleEndian>()?,
+                flags: file.read_u32::<LittleEndian>()?,
+                reserved: file.read_u32::<LittleEndian>()?,
+            };
+            Ok(MachHeaderVariant::Mach64(header))
+        },
+        _ => Err("Input file is not Mach-O!")
+    }
 }
 
 #[cfg(test)]
