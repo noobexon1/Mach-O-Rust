@@ -6,6 +6,7 @@ use clap::Parser;
 use crate::parser::parse;
 
 mod parser;
+mod translate;
 
 /// A command-line tool written in rust to view and explore files with mach-o format.
 #[derive(Parser)]
