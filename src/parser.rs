@@ -41,7 +41,7 @@ enum MachHeaderVariant {
 pub fn parse(file: &mut File) {
     let header =  parse_header(file);
     match header {
-        Ok(ref header) => header,
+        Ok(header) => header,
         Err(e) => panic!("Error on header parsing: {}", e),
     };
 }
