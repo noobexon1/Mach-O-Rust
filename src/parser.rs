@@ -125,28 +125,7 @@ pub struct MachHeader64 {
 const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
 const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
 
-// Check that the file size is at least mach_header.size() bytes (=28).
-// TODO: consider refactoring into a non boolean function... this requires change tto tests.
-fn is_file_size_ok(file: &mut File) -> bool {
-    let mach_o_header_size = 28;
-    let file_metadata = file.metadata();
-    match file_metadata {
-        Ok(metadata) => {
-            metadata.len() >= mach_o_header_size
-        }
-        Err(e) => {
-            eprintln!("Failed to get file meta-data: {}", e);
-            false
-        }
-    }
-}
-
 pub fn parse(file: &mut File) {
-    if is_file_size_ok(file) {
-
-    } else {
-        eprintln!("File size is too small!");
-    }
 
 }
 
@@ -162,18 +141,6 @@ mod tests {
     fn open_test_file(filename: &str) -> io::Result<File> {
         let test_file_path = PathBuf::from(format!("test_files/{}", filename));
         File::open(test_file_path)
-    }
-
-    #[test]
-    fn test_file_size_too_small() {
-        let mut file = open_test_file("file_size_test_too_small.txt").expect("file should open!");
-        assert!(!is_file_size_ok(&mut file));
-    }
-
-    #[test]
-    fn test_file_size_ok() {
-        let mut file = open_test_file("file_size_test_ok.txt").expect("file should open!");
-        assert!(is_file_size_ok(&mut file));
     }
 
 }
