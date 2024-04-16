@@ -33,8 +33,85 @@ const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
 const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
 
 enum MachHeaderVariant {
-    Mach32(MachHeader32),
-    Mach64(MachHeader64),
+    MH32(MachHeader32),
+    MH64(MachHeader64),
+}
+
+#[repr(C)]
+pub struct LoadCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+}
+
+#[repr(C)]
+pub struct SegmentCommand32 {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub segname: [u8; 16],
+    pub vmaddr: u32,
+    pub vmsize: u32,
+    pub fileoff: u32,
+    pub filesize: u32,
+    pub maxprot: i32,
+    pub initprot: i32,
+    pub nsects: u32,
+    pub flags: u32,
+}
+
+#[repr(C)]
+pub struct SegmentCommand64 {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub segname: [u8; 16],
+    pub vmaddr: u64,
+    pub vmsize: u64,
+    pub fileoff: u64,
+    pub filesize: u64,
+    pub maxprot: i32,
+    pub initprot: i32,
+    pub nsects: u32,
+    pub flags: u32,
+}
+
+enum SegmentVariant {
+    SEG32(SegmentCommand32),
+    SEG64(SegmentCommand64),
+}
+
+#[repr(C)]
+pub struct Section32 {
+    pub sectname: [u8; 16],
+    pub segname: [u8; 16],
+    pub addr: u32,
+    pub size: u32,
+    pub offset: u32,
+    pub align: u32,
+    pub reloff: u32,
+    pub nreloc: u32,
+    pub flags: u32,
+    pub reserved1: u32,
+    pub reserved2: u32,
+}
+
+#[repr(C)]
+pub struct Section64 {
+    pub sectname: [u8; 16],
+    pub segname: [u8; 16],
+    pub addr: u64,
+    pub size: u64,
+    pub offset: u32,
+    pub align: u32,
+    pub reloff: u32,
+    pub nreloc: u32,
+    pub flags: u32,
+    pub reserved1: u32,
+    pub reserved2: u32,
+    pub reserved3: u32,
+}
+
+enum SectionVariant {
+    SEC32(Section32),
+    SEC64(Section64),
 }
 
 pub fn parse<R: Read>(file: &mut R) {
@@ -75,7 +152,7 @@ fn occupy_header32<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -
         sizeofcmds: file.read_u32::<E>()?,
         flags: file.read_u32::<E>()?,
     };
-    Ok(MachHeaderVariant::Mach32(header))
+    Ok(MachHeaderVariant::MH32(header))
 }
 
 fn occupy_header64<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeaderVariant> {
@@ -89,7 +166,7 @@ fn occupy_header64<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -
         flags: file.read_u32::<E>()?,
         reserved: file.read_u32::<E>()?,
     };
-    Ok(MachHeaderVariant::Mach64(header))
+    Ok(MachHeaderVariant::MH64(header))
 }
 
 #[cfg(test)]
@@ -147,7 +224,7 @@ mod tests {
         let mut cursor = Cursor::new(data);
         let header = parse_header(&mut cursor).unwrap();
         match header {
-            MachHeaderVariant::Mach32(header) => {
+            MachHeaderVariant::MH32(header) => {
                 assert_eq!(header.magic, MH_MAGIC);
                 assert_eq!(header.cputype, 7);
                 assert_eq!(header.cpusubtype, 3);
@@ -166,7 +243,7 @@ mod tests {
         let mut cursor = Cursor::new(data);
         let header = parse_header(&mut cursor).unwrap();
         match header {
-            MachHeaderVariant::Mach64(header) => {
+            MachHeaderVariant::MH64(header) => {
                 assert_eq!(header.magic, MH_MAGIC_64);
                 assert_eq!(header.cputype, 7);
                 assert_eq!(header.cpusubtype, 3);
@@ -209,8 +286,8 @@ mod tests {
             assert!(result.is_ok(), "Failed to parse with LittleEndian for magic number: 0x{:X}", magic);
 
             match result.unwrap() {
-                MachHeaderVariant::Mach32(_) if !is_64 => (),
-                MachHeaderVariant::Mach64(_) if *is_64 => (),
+                MachHeaderVariant::MH32(_) if !is_64 => (),
+                MachHeaderVariant::MH64(_) if *is_64 => (),
                 _ => panic!("Header type mismatch for magic number: 0x{:X}", magic),
             }
         }

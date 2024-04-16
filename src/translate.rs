@@ -95,3 +95,5 @@
 //
 // const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
 // const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
+
+// TODO: add cmd fields for all load commands from here: https://opensource.apple.com/source/xnu/xnu-4903.221.2/EXTERNAL_HEADERS/mach-o/loader.h.auto.html
