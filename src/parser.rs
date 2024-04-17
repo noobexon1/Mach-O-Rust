@@ -5,6 +5,8 @@ use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 
 //TODO: make sure in loader.h that i included all of the structs required for th parser to operate.
 
+//TODO: consider using constructors for the occupy_""(...) things..
+
 #[repr(C)]
 pub struct MachHeader32 {
     pub magic: u32,
