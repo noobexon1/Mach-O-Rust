@@ -3,6 +3,8 @@ use std::io::Read;
 
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 
+//TODO: make sure in loader.h that i included all of the structs required for th parser to operate.
+
 #[repr(C)]
 pub struct MachHeader32 {
     pub magic: u32,
@@ -112,6 +114,63 @@ pub struct Section64 {
 enum SectionVariant {
     SEC32(Section32),
     SEC64(Section64),
+}
+
+#[repr(C)]
+pub struct DyldInfo {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub rebase_off: u32,
+    pub rebase_size: u32,
+    pub bind_off: u32,
+    pub bind_size: u32,
+    pub weak_bind_off: u32,
+    pub weak_bind_size: u32,
+    pub lazy_bind_off: u32,
+    pub lazy_bind_size: u32,
+    pub export_off: u32,
+    pub export_size: u32,
+}
+
+#[repr(C)]
+pub struct Symtab {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub symoff: u32,
+    pub nsyms: u32,
+    pub stroff: u32,
+    pub strsize: u32,
+}
+
+#[repr(C)]
+pub struct DynSymtab {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub ilocalsym: u32,
+    pub nlocalsym: u32,
+    pub iextdefsym: u32,
+    pub nextdefsym: u32,
+    pub iundefsym: u32,
+    pub nundefsym: u32,
+    pub tocoff: u32,
+    pub ntoc: u32,
+    pub modtaboff: u32,
+    pub nmodtab: u32,
+    pub extrefsymoff: u32,
+    pub nextrefsyms: u32,
+    pub indirectsymoff: u32,
+    pub nindirectsyms: u32,
+    pub extreloff: u32,
+    pub nextrel: u32,
+    pub locreloff: u32,
+    pub nlocrel: u32,
+}
+
+#[repr(C)]
+pub struct UuidCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub uuid: [u8; 16],
 }
 
 pub fn parse<R: Read>(file: &mut R) {
