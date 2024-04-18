@@ -468,18 +468,10 @@ fn parse_header<R: Read>(file: &mut R) -> io::Result<MachHeaderVariant> {
     let magic = file.read_u32::<BigEndian>()?;
 
     match magic {
-        MH_MAGIC => {
-            header32::<R, BigEndian>(file, magic)
-        }
-        MH_CIGAM => {
-            header32::<R, LittleEndian>(file, magic)
-        }
-        MH_MAGIC_64 => {
-            header64::<R, BigEndian>(file, magic)
-        }
-        MH_CIGAM_64 => {
-            header64::<R, LittleEndian>(file, magic)
-        }
+        MH_MAGIC => header32::<R, BigEndian>(file, magic),
+        MH_CIGAM => header32::<R, LittleEndian>(file, magic),
+        MH_MAGIC_64 => header64::<R, BigEndian>(file, magic),
+        MH_CIGAM_64 => header64::<R, LittleEndian>(file, magic),
         _ => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid magic number")),
     }
 }
