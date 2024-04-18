@@ -7,6 +7,8 @@ use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 
 //TODO: consider using constructors for the occupy_""(...) things..
 
+
+
 #[repr(C)]
 pub struct MachHeader32 {
     pub magic: u32,
@@ -45,6 +47,12 @@ enum MachHeaderVariant {
 pub struct LoadCommand {
     pub cmd: u32,
     pub cmdsize: u32,
+}
+
+#[repr(C)]
+pub union LcStr {
+    pub offset: u32,
+    pub ptr: *const u8,
 }
 
 #[repr(C)]
@@ -119,23 +127,100 @@ enum SectionVariant {
 }
 
 #[repr(C)]
-pub struct DyldInfo {
-    pub cmd: u32,
-    pub cmdsize: u32,
-    pub rebase_off: u32,
-    pub rebase_size: u32,
-    pub bind_off: u32,
-    pub bind_size: u32,
-    pub weak_bind_off: u32,
-    pub weak_bind_size: u32,
-    pub lazy_bind_off: u32,
-    pub lazy_bind_size: u32,
-    pub export_off: u32,
-    pub export_size: u32,
+pub struct Dylib {
+    pub name: LcStr,
+    pub timestamp: u32,
+    pub current_version: u32,
+    pub compatibility_version: u32,
 }
 
 #[repr(C)]
-pub struct Symtab {
+pub struct DylibCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub dylib: Dylib,
+}
+
+#[repr(C)]
+pub struct SubFrameWorkCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub umbrella: LcStr,
+}
+
+#[repr(C)]
+pub struct SubClientCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub client: LcStr,
+}
+
+#[repr(C)]
+pub struct SubUmbrellaCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub sub_umbrella: LcStr,
+}
+
+#[repr(C)]
+pub struct SubLibraryCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub sub_library: LcStr,
+}
+
+#[repr(C)]
+pub struct PreboundDylibCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub name: LcStr,
+    pub nmodules: u32,
+    pub linked_modules: LcStr,
+}
+
+#[repr(C)]
+pub struct DylinkerCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub name: LcStr,
+}
+
+#[repr(C)]
+pub struct ThreadCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+}
+
+#[repr(C)]
+pub struct RoutinesCommand32 {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub init_address: u32,
+    pub init_module: u32,
+    pub reserved1: u32,
+    pub reserved2: u32,
+    pub reserved3: u32,
+    pub reserved4: u32,
+    pub reserved5: u32,
+    pub reserved6: u32,
+}
+
+#[repr(C)]
+pub struct RoutinesCommand64 {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub init_address: u64,
+    pub init_module: u64,
+    pub reserved1: u64,
+    pub reserved2: u64,
+    pub reserved3: u64,
+    pub reserved4: u64,
+    pub reserved5: u64,
+    pub reserved6: u64,
+}
+
+#[repr(C)]
+pub struct SymtabCommand {
     pub cmd: u32,
     pub cmdsize: u32,
     pub symoff: u32,
@@ -145,7 +230,7 @@ pub struct Symtab {
 }
 
 #[repr(C)]
-pub struct DynSymtab {
+pub struct DynSymtabCommand {
     pub cmd: u32,
     pub cmdsize: u32,
     pub ilocalsym: u32,
@@ -169,10 +254,210 @@ pub struct DynSymtab {
 }
 
 #[repr(C)]
+pub struct DylibTableOfContents {
+    pub symbol_index: u32,
+    pub module_index: u32,
+}
+
+#[repr(C)]
+pub struct DylibModule32 {
+    pub module_name: u32,
+    pub iextdefsym: u32,
+    pub nextdefsym: u32,
+    pub irefsym: u32,
+    pub nrefsym: u32,
+    pub ilocalsym: u32,
+    pub nlocalsym: u32,
+    pub iextrel: u32,
+    pub nextrel: u32,
+    pub iinit_iterm: u32,
+    pub ninit_nterm: u32,
+    pub objc_module_info_addr: u32,
+    pub objc_module_info_size: u32,
+}
+
+#[repr(C)]
+pub struct DylibModule64 {
+    pub module_name: u32,
+    pub iextdefsym: u32,
+    pub nextdefsym: u32,
+    pub irefsym: u32,
+    pub nrefsym: u32,
+    pub ilocalsym: u32,
+    pub nlocalsym: u32,
+    pub iextrel: u32,
+    pub nextrel: u32,
+    pub iinit_iterm: u32,
+    pub ninit_nterm: u32,
+    pub objc_module_info_size: u32,
+    pub objc_module_info_addr: u64,
+}
+
+#[repr(C)]
+pub struct DylibReference {
+    pub isym: u32,
+    pub flags: u8,
+}
+
+#[repr(C)]
+pub struct TwoLevelHintsCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub offset: u32,
+    pub nhints: u32,
+}
+
+#[repr(C)]
+pub struct TwoLevelHint {
+    pub isub_image: u8,
+    pub itoc: u32,
+}
+
+#[repr(C)]
+pub struct PrebindCksumCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub cksum: u32,
+}
+
+#[repr(C)]
 pub struct UuidCommand {
     pub cmd: u32,
     pub cmdsize: u32,
     pub uuid: [u8; 16],
+}
+
+#[repr(C)]
+pub struct RpathCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub path: LcStr,
+}
+
+#[repr(C)]
+pub struct LinkeditDataCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub dataoff: u32,
+    pub datasize: u32,
+}
+
+#[repr(C)]
+pub struct EncryptionInfoCommand32 {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub cryptoff: u32,
+    pub cryptsize: u32,
+    pub cryptid: u32,
+}
+
+#[repr(C)]
+pub struct EncryptionInfoCommand64 {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub cryptoff: u32,
+    pub cryptsize: u32,
+    pub cryptid: u32,
+    pub pad: u32,
+}
+
+#[repr(C)]
+pub struct VersionMinCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub version: u32,
+    pub sdk: u32,
+}
+
+#[repr(C)]
+pub struct BuildVersionCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub platform: u32,
+    pub minos: u32,
+    pub sdk: u32,
+    pub ntools: u32,
+}
+
+#[repr(C)]
+pub struct DyldInfoCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub rebase_off: u32,
+    pub rebase_size: u32,
+    pub bind_off: u32,
+    pub bind_size: u32,
+    pub weak_bind_off: u32,
+    pub weak_bind_size: u32,
+    pub lazy_bind_off: u32,
+    pub lazy_bind_size: u32,
+    pub export_off: u32,
+    pub export_size: u32,
+}
+
+#[repr(C)]
+pub struct BuildToolVersion {
+    pub tool: u32,
+    pub version: u32,
+}
+
+#[repr(C)]
+pub struct LinkerOptionCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub count: u32,
+}
+
+#[repr(C)]
+pub struct SymsegCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub offset: u32,
+    pub size: u32,
+}
+
+#[repr(C)]
+pub struct IdentCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+}
+
+#[repr(C)]
+pub struct EntryPointCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub entryoff: u64,
+    pub stacksize: u64,
+}
+
+#[repr(C)]
+pub struct SourceVersionCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub version: u64,
+}
+
+#[repr(C)]
+pub struct DataInCodeEntry {
+    pub offset: u32,
+    pub length: u16,
+    pub kind: u16,
+}
+
+#[repr(C)]
+pub struct TlvDescriptor {
+    pub thunk: extern "C" fn(&mut TlvDescriptor),
+    pub key: usize,
+    pub offset: usize,
+}
+
+#[repr(C)]
+pub struct NoteCommand {
+    pub cmd: u32,
+    pub cmdsize: u32,
+    pub data_owner: [u8; 16],
+    pub offset: u64,
+    pub size: u64,
 }
 
 pub fn parse<R: Read>(file: &mut R) {
