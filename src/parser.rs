@@ -3,11 +3,7 @@ use std::io::Read;
 
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 
-//TODO: make sure in loader.h that i included all of the structs required for th parser to operate.
-
-//TODO: consider using constructors for the occupy_""(...) things..
-
-
+//TODO: Make constructors for the structs.
 
 #[repr(C)]
 pub struct MachHeader32 {
@@ -473,22 +469,22 @@ fn parse_header<R: Read>(file: &mut R) -> io::Result<MachHeaderVariant> {
 
     match magic {
         MH_MAGIC => {
-            occupy_header32::<R, BigEndian>(file, magic)
+            header32::<R, BigEndian>(file, magic)
         }
         MH_CIGAM => {
-            occupy_header32::<R, LittleEndian>(file, magic)
+            header32::<R, LittleEndian>(file, magic)
         }
         MH_MAGIC_64 => {
-            occupy_header64::<R, BigEndian>(file, magic)
+            header64::<R, BigEndian>(file, magic)
         }
         MH_CIGAM_64 => {
-            occupy_header64::<R, LittleEndian>(file, magic)
+            header64::<R, LittleEndian>(file, magic)
         }
         _ => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid magic number")),
     }
 }
 
-fn occupy_header32<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeaderVariant> {
+fn header32<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeaderVariant> {
     let header = MachHeader32 {
         magic,
         cputype: file.read_i32::<E>()?,
@@ -501,7 +497,7 @@ fn occupy_header32<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -
     Ok(MachHeaderVariant::MH32(header))
 }
 
-fn occupy_header64<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeaderVariant> {
+fn header64<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeaderVariant> {
     let header = MachHeader64 {
         magic,
         cputype: file.read_i32::<E>()?,
