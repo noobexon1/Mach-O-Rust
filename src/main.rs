@@ -7,6 +7,9 @@ use crate::parser::parse;
 
 mod parser;
 mod header;
+mod load_commands;
+mod constants;
+mod printer;
 
 /// A command-line tool written in rust to view and explore files with mach-o format.
 #[derive(Parser)]
