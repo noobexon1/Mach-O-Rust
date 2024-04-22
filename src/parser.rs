@@ -3,73 +3,10 @@ use std::io::Read;
 
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 
+use crate::header::*;
+
 // TODO: Maybe implement a trait or a function to read an array of 16 bytes because it creates boilerplate in structs...
 // TODO: Consider refactoring load command by making an enum of load commands because they are all connected in some way...
-
-enum MachHeader {
-    MH32(MachHeader32),
-    MH64(MachHeader64),
-}
-
-const MH_MAGIC: u32 = 0xfeedface; // Big endian, 32 bit Mach-O
-const MH_CIGAM: u32 = 0xcefaedfe; // Little endian, 32 bit Mach-O
-
-#[repr(C)]
-pub struct MachHeader32 {
-    pub magic: u32,
-    pub cputype: i32,
-    pub cpusubtype: i32,
-    pub filetype: u32,
-    pub ncmds: u32,
-    pub sizeofcmds: u32,
-    pub flags: u32,
-}
-
-impl MachHeader32 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeader> {
-        let header = MachHeader32 {
-            magic,
-            cputype: file.read_i32::<E>()?,
-            cpusubtype: file.read_i32::<E>()?,
-            filetype: file.read_u32::<E>()?,
-            ncmds: file.read_u32::<E>()?,
-            sizeofcmds: file.read_u32::<E>()?,
-            flags: file.read_u32::<E>()?,
-        };
-        Ok(MachHeader::MH32(header))
-    }
-}
-
-const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
-const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
-
-#[repr(C)]
-pub struct MachHeader64 {
-    pub magic: u32,
-    pub cputype: i32,
-    pub cpusubtype: i32,
-    pub filetype: u32,
-    pub ncmds: u32,
-    pub sizeofcmds: u32,
-    pub flags: u32,
-    pub reserved: u32,
-}
-
-impl MachHeader64 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeader> {
-        let header = MachHeader64 {
-            magic,
-            cputype: file.read_i32::<E>()?,
-            cpusubtype: file.read_i32::<E>()?,
-            filetype: file.read_u32::<E>()?,
-            ncmds: file.read_u32::<E>()?,
-            sizeofcmds: file.read_u32::<E>()?,
-            flags: file.read_u32::<E>()?,
-            reserved: file.read_u32::<E>()?,
-        };
-        Ok(MachHeader::MH64(header))
-    }
-}
 
 #[repr(C)]
 pub struct LoadCommand {
@@ -93,7 +30,7 @@ pub union LcStr {
     pub ptr: *const u8,
 }
 
-enum SegmentCommand {
+pub enum SegmentCommand {
     SEG32(SegmentCommand32),
     SEG64(SegmentCommand64),
 }
@@ -115,7 +52,7 @@ pub struct SegmentCommand32 {
 
 impl SegmentCommand32 {
     pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommand) -> io::Result<SegmentCommand> {
-                let segment_command = SegmentCommand32 {
+        let segment_command = SegmentCommand32 {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             segname: Self::read_segname(file)?,
@@ -180,7 +117,7 @@ impl SegmentCommand64 {
     }
 }
 
-enum Section {
+pub enum Section {
     SEC32(Section32),
     SEC64(Section64),
 }
@@ -433,7 +370,7 @@ impl ThreadCommand {
     }
 }
 
-enum RoutinesCommand {
+pub enum RoutinesCommand {
     RTN32(RoutinesCommand32),
     RTN64(RoutinesCommand64),
 }
@@ -594,7 +531,7 @@ impl DylibTableOfContents {
     }
 }
 
-enum DylibModule {
+pub enum DylibModule {
     DMD32(DylibModule32),
     DMD64(DylibModule64),
 }
@@ -807,7 +744,7 @@ impl LinkeditDataCommand {
     }
 }
 
-enum EncryptionInfoCommand {
+pub enum EncryptionInfoCommand {
     ENI32(EncryptionInfoCommand32),
     ENI64(EncryptionInfoCommand64),
 }
@@ -1100,7 +1037,7 @@ impl NoteCommand {
 }
 
 pub fn parse<R: Read>(file: &mut R) {
-    let header =  parse_header(file);
+    let header = parse_header(file);
     match header {
         Ok(header) => header,
         Err(e) => panic!("Error on header parsing: {}", e),
@@ -1182,7 +1119,7 @@ mod tests {
                 assert_eq!(header.ncmds, 5);
                 assert_eq!(header.sizeofcmds, 1024);
                 assert_eq!(header.flags, 1);
-            },
+            }
             _ => panic!("Expected MachHeader32, found MachHeader64"),
         }
     }
@@ -1202,7 +1139,7 @@ mod tests {
                 assert_eq!(header.sizeofcmds, 2048);
                 assert_eq!(header.flags, 1);
                 assert_eq!(header.reserved, 0);
-            },
+            }
             _ => panic!("Expected MachHeader64, found MachHeader32"),
         }
     }
@@ -1217,7 +1154,7 @@ mod tests {
     #[test]
     fn test_all_possible_magic_numbers() {
         let magics = [
-            (MH_MAGIC,  false),
+            (MH_MAGIC, false),
             (MH_CIGAM, false),
             (MH_MAGIC_64, true),
             (MH_CIGAM_64, true),
