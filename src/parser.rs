@@ -34,7 +34,7 @@ pub struct MachHeader64 {
 const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
 const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
 
-enum MachHeaderVariant {
+enum MachHeader {
     MH32(MachHeader32),
     MH64(MachHeader64),
 }
@@ -81,7 +81,7 @@ pub struct SegmentCommand64 {
     pub flags: u32,
 }
 
-enum SegmentVariant {
+enum SegmentCommand {
     SEG32(SegmentCommand32),
     SEG64(SegmentCommand64),
 }
@@ -117,7 +117,7 @@ pub struct Section64 {
     pub reserved3: u32,
 }
 
-enum SectionVariant {
+enum Section {
     SEC32(Section32),
     SEC64(Section64),
 }
@@ -215,6 +215,11 @@ pub struct RoutinesCommand64 {
     pub reserved6: u64,
 }
 
+enum RoutinesCommand {
+    RTN32(RoutinesCommand32),
+    RTN64(RoutinesCommand64),
+}
+
 #[repr(C)]
 pub struct SymtabCommand {
     pub cmd: u32,
@@ -289,6 +294,11 @@ pub struct DylibModule64 {
     pub objc_module_info_addr: u64,
 }
 
+enum DylibModule {
+    DMD32(DylibModule32),
+    DMD64(DylibModule64),
+}
+
 #[repr(C)]
 pub struct DylibReference {
     pub isym: u32,
@@ -355,6 +365,11 @@ pub struct EncryptionInfoCommand64 {
     pub cryptsize: u32,
     pub cryptid: u32,
     pub pad: u32,
+}
+
+enum EncryptionInfoCommand {
+    ENI32(EncryptionInfoCommand32),
+    ENI64(EncryptionInfoCommand64),
 }
 
 #[repr(C)]
@@ -464,7 +479,7 @@ pub fn parse<R: Read>(file: &mut R) {
     };
 }
 
-fn parse_header<R: Read>(file: &mut R) -> io::Result<MachHeaderVariant> {
+fn parse_header<R: Read>(file: &mut R) -> io::Result<MachHeader> {
     let magic = file.read_u32::<BigEndian>()?;
 
     match magic {
@@ -476,7 +491,7 @@ fn parse_header<R: Read>(file: &mut R) -> io::Result<MachHeaderVariant> {
     }
 }
 
-fn header32<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeaderVariant> {
+fn header32<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeader> {
     let header = MachHeader32 {
         magic,
         cputype: file.read_i32::<E>()?,
@@ -486,10 +501,10 @@ fn header32<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::R
         sizeofcmds: file.read_u32::<E>()?,
         flags: file.read_u32::<E>()?,
     };
-    Ok(MachHeaderVariant::MH32(header))
+    Ok(MachHeader::MH32(header))
 }
 
-fn header64<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeaderVariant> {
+fn header64<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeader> {
     let header = MachHeader64 {
         magic,
         cputype: file.read_i32::<E>()?,
@@ -500,7 +515,7 @@ fn header64<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::R
         flags: file.read_u32::<E>()?,
         reserved: file.read_u32::<E>()?,
     };
-    Ok(MachHeaderVariant::MH64(header))
+    Ok(MachHeader::MH64(header))
 }
 
 #[cfg(test)]
@@ -558,7 +573,7 @@ mod tests {
         let mut cursor = Cursor::new(data);
         let header = parse_header(&mut cursor).unwrap();
         match header {
-            MachHeaderVariant::MH32(header) => {
+            MachHeader::MH32(header) => {
                 assert_eq!(header.magic, MH_MAGIC);
                 assert_eq!(header.cputype, 7);
                 assert_eq!(header.cpusubtype, 3);
@@ -577,7 +592,7 @@ mod tests {
         let mut cursor = Cursor::new(data);
         let header = parse_header(&mut cursor).unwrap();
         match header {
-            MachHeaderVariant::MH64(header) => {
+            MachHeader::MH64(header) => {
                 assert_eq!(header.magic, MH_MAGIC_64);
                 assert_eq!(header.cputype, 7);
                 assert_eq!(header.cpusubtype, 3);
@@ -620,8 +635,8 @@ mod tests {
             assert!(result.is_ok(), "Failed to parse with LittleEndian for magic number: 0x{:X}", magic);
 
             match result.unwrap() {
-                MachHeaderVariant::MH32(_) if !is_64 => (),
-                MachHeaderVariant::MH64(_) if *is_64 => (),
+                MachHeader::MH32(_) if !is_64 => (),
+                MachHeader::MH64(_) if *is_64 => (),
                 _ => panic!("Header type mismatch for magic number: 0x{:X}", magic),
             }
         }
