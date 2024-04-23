@@ -8,10 +8,8 @@ pub enum MachHeader {
     MH64(MachHeader64),
 }
 
-// Big endian, 32 bit Mach-O
-pub const MH_MAGIC: u32 = 0xfeedface;
-// Little endian, 32 bit Mach-O
-pub const MH_CIGAM: u32 = 0xcefaedfe;
+pub const MH_MAGIC: u32 = 0xfeedface; // Big endian, 32 bit Mach-O
+pub const MH_CIGAM: u32 = 0xcefaedfe; // Little endian, 32 bit Mach-O
 
 #[repr(C)]
 pub struct MachHeader32 {
@@ -39,10 +37,8 @@ impl MachHeader32 {
     }
 }
 
-// Big endian, 64 bit Mach-O
-pub const MH_MAGIC_64: u32 = 0xfeedfacf;
-// Little endian, 64 bit Mach-O
-pub const MH_CIGAM_64: u32 = 0xcffaedfe;
+pub const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
+pub const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
 
 #[repr(C)]
 pub struct MachHeader64 {

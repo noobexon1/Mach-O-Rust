@@ -3,8 +3,6 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-use crate::parser::parse;
-
 mod parser;
 mod header;
 mod load_commands;
@@ -15,16 +13,23 @@ mod printer;
 #[derive(Parser)]
 #[command(name = "Mach_O_Rust")]
 #[command(version, about, long_about = None)]
-pub struct Args {
+struct Args {
     /// Input mach-o file
     #[arg(short, long, value_name = "FILE_PATH", required = true)]
-    pub input: PathBuf,
+    input: PathBuf,
+    /// Print the mach-o header
+    #[arg(short = 'f', long = "header", required = false)]
+    header: bool,
 }
 
 fn main() {
     let args = Args::parse();
-    match File::open(&args.input.as_path()) {
-        Ok(mut file) => parse(&mut file),
-        Err(e) => eprintln!("Failed to open input file: {}", e),
+    let mach_o = match File::open(&args.input.as_path()) {
+        Ok(mut file) => parser::parse(&mut file),
+        Err(e) => panic!("Error opening input file for reading!"),
+    };
+
+    if args.header {
+        printer::print_header(mach_o.get_header());
     }
 }

@@ -5,16 +5,29 @@ use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 
 use crate::header::*;
 
+pub struct MachO {
+    header: MachHeader,
+}
+
+impl MachO {
+    pub fn get_header(&self) -> &MachHeader {
+        &self.header
+    }
+}
+
 // TODO: Maybe implement a trait or a function to read an array of 16 bytes because it creates boilerplate in structs...
 // TODO: Consider refactoring load command by making an enum of load commands because they are all connected in some way...
 
 
-pub fn parse<R: Read>(file: &mut R) {
-    let header = parse_header(file);
-    match header {
+pub fn parse<R: Read>(file: &mut R) -> MachO {
+    let header = match parse_header(file) {
         Ok(header) => header,
         Err(e) => panic!("Error on header parsing: {}", e),
     };
+
+    MachO {
+        header,
+    }
 }
 
 fn parse_header<R: Read>(file: &mut R) -> io::Result<MachHeader> {
