@@ -4,9 +4,11 @@ use std::io::Read;
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 
 use crate::header::*;
+use crate::load_commands::LoadCommandVariant;
 
 pub struct MachO {
     header: MachHeader,
+    load_commands: Vec<LoadCommandVariant>,
 }
 
 impl MachO {
@@ -15,18 +17,17 @@ impl MachO {
     }
 }
 
-// TODO: Maybe implement a trait or a function to read an array of 16 bytes because it creates boilerplate in structs...
-// TODO: Consider refactoring load command by making an enum of load commands because they are all connected in some way...
-
-
 pub fn parse<R: Read>(file: &mut R) -> MachO {
     let header = match parse_header(file) {
         Ok(header) => header,
         Err(e) => panic!("Error on header parsing: {}", e),
     };
 
+    let mut load_commands = Vec::new();
+    
     MachO {
         header,
+        load_commands
     }
 }
 

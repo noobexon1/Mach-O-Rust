@@ -3,6 +3,39 @@ use std::io::Read;
 
 use byteorder::ReadBytesExt;
 
+// TODO: Maybe implement a trait or a function to read an array of 16 bytes because it creates boilerplate in structs...
+
+// TODO: SWAP THIS FOR TRAIT THAT WILL ENFORCE IMPLEMENTATION OF from_file() METHOD!
+pub enum LoadCommandVariant {
+    SegmentCommand,
+    DylibCommand,
+    SubFrameWorkCommand,
+    SubClientCommand,
+    SubUmbrellaCommand,
+    SubLibraryCommand,
+    PreboundDylibCommand,
+    DylinkerCommand,
+    ThreadCommand,
+    RoutinesCommand,
+    SymtabCommand,
+    DynSymtabCommand,
+    TwoLevelHintsCommand,
+    PrebindCksumCommand,
+    UuidCommand,
+    RpathCommand,
+    LinkeditDataCommand,
+    EncryptionInfoCommand,
+    VersionMinCommand,
+    BuildVersionCommand,
+    DyldInfoCommand,
+    LinkerOptionCommand,
+    SymsegCommand,
+    IdentCommand,
+    EntryPointCommand,
+    SourceVersionCommand,
+    NoteCommand,
+}
+
 #[repr(C)]
 pub struct LoadCommand {
     pub cmd: u32,
