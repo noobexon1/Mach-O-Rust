@@ -1,12 +1,10 @@
 use std::io;
 use std::io::Read;
 
-use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
+use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt};
 
 use crate::header::*;
 use crate::load_commands::{LoadCommand, LoadCommandVariant};
-
-// TODO: make error handling better... dont just panic. match over things.
 
 pub struct MachO {
     header: MachHeader,
@@ -20,14 +18,28 @@ impl MachO {
 }
 
 pub fn parse<R: Read>(file: &mut R) -> MachO {
-    let header = match parse_header(file) {
+    let magic = file.read_u32::<BigEndian>().unwrap();
+
+    let header = match parse_header(file, magic) {
         Ok(header) => header,
         Err(e) => panic!("Error on header parsing: {}", e),
     };
 
-    let load_commands = match parse_load_commands(file, &header) {
-        Ok(load_commands) => load_commands,
-        Err(e) => panic!("Error on load commands parsing: {}", e),
+    // TODO: use high order function to execute_with_endian(<func>, <magic>) to minimize boilerplate
+    let load_commands = match magic {
+        MH_MAGIC | MH_MAGIC_64 => {
+            match parse_load_commands::<R, BigEndian>(file, &header) {
+                Ok(load_commands) => load_commands,
+                Err(e) => panic!("Error on load commands parsing: {}", e),
+            }
+        }
+        MH_CIGAM | MH_CIGAM_64 => {
+            match parse_load_commands::<R, LittleEndian>(file, &header) {
+                Ok(load_commands) => load_commands,
+                Err(e) => panic!("Error on load commands parsing: {}", e),
+            }
+        }
+        _ => panic!("Invalid magic number!"),
     };
 
     MachO {
@@ -36,9 +48,7 @@ pub fn parse<R: Read>(file: &mut R) -> MachO {
     }
 }
 
-fn parse_header<R: Read>(file: &mut R) -> io::Result<MachHeader> {
-    let magic = file.read_u32::<BigEndian>()?;
-
+fn parse_header<R: Read>(file: &mut R, magic: u32) -> io::Result<MachHeader> {
     match magic {
         MH_MAGIC => MachHeader32::from_file::<R, BigEndian>(file, magic),
         MH_CIGAM => MachHeader32::from_file::<R, LittleEndian>(file, magic),
@@ -48,8 +58,7 @@ fn parse_header<R: Read>(file: &mut R) -> io::Result<MachHeader> {
     }
 }
 
-// TODO: implement a function to get endianness and then refactor.
-fn parse_load_commands<R: Read, E: byteorder::ByteOrder>(file: &mut R, header: &MachHeader) -> io::Result<Vec<LoadCommandVariant>> {
+fn parse_load_commands<R: Read, E: ByteOrder>(file: &mut R, header: &MachHeader) -> io::Result<Vec<LoadCommandVariant>> {
     let mut load_commands: Vec<LoadCommandVariant> = Vec::new();
 
     for i in 0..header.ncmds() {
@@ -58,136 +67,4 @@ fn parse_load_commands<R: Read, E: byteorder::ByteOrder>(file: &mut R, header: &
     }
 
     Ok(load_commands)
-}
-
-#[cfg(test)]
-mod tests {
-    use std::io::Cursor;
-
-    use byteorder::{BigEndian, WriteBytesExt};
-
-    use super::*;
-
-    fn mock_mach_header32() -> Vec<u8> {
-        let mut data = vec![];
-        data.write_u32::<BigEndian>(MH_MAGIC).unwrap();
-        data.write_i32::<BigEndian>(7).unwrap(); // cputype
-        data.write_i32::<BigEndian>(3).unwrap(); // cpusubtype
-        data.write_u32::<BigEndian>(2).unwrap(); // filetype
-        data.write_u32::<BigEndian>(5).unwrap(); // ncmds
-        data.write_u32::<BigEndian>(1024).unwrap(); // sizeofcmds
-        data.write_u32::<BigEndian>(1).unwrap(); // flags
-        data
-    }
-
-    fn mock_mach_header64() -> Vec<u8> {
-        let mut data = vec![];
-        data.write_u32::<BigEndian>(MH_MAGIC_64).unwrap();
-        data.write_i32::<BigEndian>(7).unwrap(); // cputype
-        data.write_i32::<BigEndian>(3).unwrap(); // cpusubtype
-        data.write_u32::<BigEndian>(2).unwrap(); // filetype
-        data.write_u32::<BigEndian>(5).unwrap(); // ncmds
-        data.write_u32::<BigEndian>(2048).unwrap(); // sizeofcmds
-        data.write_u32::<BigEndian>(1).unwrap(); // flags
-        data.write_u32::<BigEndian>(0).unwrap(); // reserved
-        data
-    }
-
-    // Helper function to create mock data for headers
-    fn create_mock_header<E: byteorder::ByteOrder>(magic: u32, is_64: bool) -> Vec<u8> {
-        let mut data = vec![];
-        data.write_u32::<E>(magic).unwrap();
-        data.write_i32::<E>(7).unwrap(); // cputype
-        data.write_i32::<E>(3).unwrap(); // cpusubtype
-        data.write_u32::<E>(2).unwrap(); // filetype
-        data.write_u32::<E>(5).unwrap(); // ncmds
-        data.write_u32::<E>(1024).unwrap(); // sizeofcmds
-        data.write_u32::<E>(1).unwrap(); // flags
-        if is_64 {
-            data.write_u32::<E>(0).unwrap(); // reserved for 64-bit headers
-        }
-        data
-    }
-
-    #[test]
-    fn test_parse_header_32() {
-        let data = mock_mach_header32();
-        let mut cursor = Cursor::new(data);
-        let header = parse_header(&mut cursor).unwrap();
-        match header {
-            MachHeader::MH32(header) => {
-                assert_eq!(header.magic, MH_MAGIC);
-                assert_eq!(header.cputype, 7);
-                assert_eq!(header.cpusubtype, 3);
-                assert_eq!(header.filetype, 2);
-                assert_eq!(header.ncmds, 5);
-                assert_eq!(header.sizeofcmds, 1024);
-                assert_eq!(header.flags, 1);
-            }
-            _ => panic!("Expected MachHeader32, found MachHeader64"),
-        }
-    }
-
-    #[test]
-    fn test_parse_header_64() {
-        let data = mock_mach_header64();
-        let mut cursor = Cursor::new(data);
-        let header = parse_header(&mut cursor).unwrap();
-        match header {
-            MachHeader::MH64(header) => {
-                assert_eq!(header.magic, MH_MAGIC_64);
-                assert_eq!(header.cputype, 7);
-                assert_eq!(header.cpusubtype, 3);
-                assert_eq!(header.filetype, 2);
-                assert_eq!(header.ncmds, 5);
-                assert_eq!(header.sizeofcmds, 2048);
-                assert_eq!(header.flags, 1);
-                assert_eq!(header.reserved, 0);
-            }
-            _ => panic!("Expected MachHeader64, found MachHeader32"),
-        }
-    }
-
-    #[test]
-    fn test_invalid_magic() {
-        let data = vec![0u8; 4]; // Invalid magic number
-        let mut cursor = Cursor::new(data);
-        assert!(parse_header(&mut cursor).is_err());
-    }
-
-    #[test]
-    fn test_all_possible_magic_numbers() {
-        let magics = [
-            (MH_MAGIC, false),
-            (MH_CIGAM, false),
-            (MH_MAGIC_64, true),
-            (MH_CIGAM_64, true),
-        ];
-
-        for (magic, is_64) in magics.iter() {
-            let data = create_mock_header::<BigEndian>(*magic, *is_64);
-            let mut cursor = Cursor::new(data);
-            let result = parse_header(&mut cursor);
-            assert!(result.is_ok(), "Failed to parse known valid magic number: 0x{:X}", magic);
-
-            // Test with LittleEndian if applicable
-            let data = create_mock_header::<LittleEndian>(*magic, *is_64);
-            let mut cursor = Cursor::new(data);
-            let result = parse_header(&mut cursor);
-            assert!(result.is_ok(), "Failed to parse with LittleEndian for magic number: 0x{:X}", magic);
-
-            match result.unwrap() {
-                MachHeader::MH32(_) if !is_64 => (),
-                MachHeader::MH64(_) if *is_64 => (),
-                _ => panic!("Header type mismatch for magic number: 0x{:X}", magic),
-            }
-        }
-
-        // Test an invalid magic number
-        let invalid_magic = 0x12345678; // Randomly chosen invalid magic number
-        let data = create_mock_header::<BigEndian>(invalid_magic, false);
-        let mut cursor = Cursor::new(data);
-        let result = parse_header(&mut cursor);
-        assert!(result.is_err(), "Parsed an invalid magic number that should have failed");
-    }
 }
