@@ -3,12 +3,12 @@ use std::io::Read;
 
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt};
 
-use crate::header::*;
-use crate::load_commands::{LoadCommand, LoadCommandVariant};
+use crate::header::{MachHeader, MachHeader32, MachHeader64, MH_CIGAM, MH_CIGAM_64, MH_MAGIC, MH_MAGIC_64};
+use crate::load_commands::{LoadCommand, LoadCommandPrefix};
 
 pub struct MachO {
     header: MachHeader,
-    load_commands: Vec<LoadCommandVariant>,
+    load_commands: Vec<LoadCommand>,
 }
 
 impl MachO {
@@ -67,11 +67,11 @@ fn parse_header<R: Read, E: ByteOrder>(file: &mut R, magic: u32) -> io::Result<M
     }
 }
 
-fn parse_load_commands<R: Read, E: ByteOrder>(file: &mut R, header: &MachHeader) -> io::Result<Vec<LoadCommandVariant>> {
-    let mut load_commands: Vec<LoadCommandVariant> = Vec::new();
+fn parse_load_commands<R: Read, E: ByteOrder>(file: &mut R, header: &MachHeader) -> io::Result<Vec<LoadCommand>> {
+    let mut load_commands: Vec<LoadCommand> = Vec::new();
 
     for _ in 0..header.ncmds() {
-        let load_command = LoadCommand::from_file::<R, E>(file)?;
+        let load_command_prefix = LoadCommandPrefix::from_file::<R, E>(file)?;
 
     }
 
