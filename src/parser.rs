@@ -20,12 +20,23 @@ impl MachO {
 pub fn parse<R: Read>(file: &mut R) -> MachO {
     let magic = file.read_u32::<BigEndian>().unwrap();
 
-    let header = match parse_header(file, magic) {
-        Ok(header) => header,
-        Err(e) => panic!("Error on header parsing: {}", e),
+    // TODO: use high order function to execute_with_endian(<func>, <magic>) to minimize boilerplate
+    let header = match magic {
+        MH_MAGIC | MH_MAGIC_64 => {
+            match parse_header::<R, BigEndian>(file, magic) {
+                Ok(header) => header,
+                Err(e) => panic!("Error on header parsing: {}", e),
+            }
+        }
+        MH_CIGAM | MH_CIGAM_64 => {
+            match parse_header::<R, LittleEndian>(file, magic) {
+                Ok(header) => header,
+                Err(e) => panic!("Error on header parsing: {}", e),
+            }
+        }
+        _ => panic!("Invalid magic number!"),
     };
 
-    // TODO: use high order function to execute_with_endian(<func>, <magic>) to minimize boilerplate
     let load_commands = match magic {
         MH_MAGIC | MH_MAGIC_64 => {
             match parse_load_commands::<R, BigEndian>(file, &header) {
@@ -48,12 +59,10 @@ pub fn parse<R: Read>(file: &mut R) -> MachO {
     }
 }
 
-fn parse_header<R: Read>(file: &mut R, magic: u32) -> io::Result<MachHeader> {
+fn parse_header<R: Read, E: ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeader> {
     match magic {
-        MH_MAGIC => MachHeader32::from_file::<R, BigEndian>(file, magic),
-        MH_CIGAM => MachHeader32::from_file::<R, LittleEndian>(file, magic),
-        MH_MAGIC_64 => MachHeader64::from_file::<R, BigEndian>(file, magic),
-        MH_CIGAM_64 => MachHeader64::from_file::<R, LittleEndian>(file, magic),
+        MH_MAGIC | MH_CIGAM => MachHeader32::from_file::<R, E>(file, magic),
+        MH_MAGIC_64 | MH_CIGAM_64 => MachHeader64::from_file::<R, E>(file, magic),
         _ => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid magic number")),
     }
 }
