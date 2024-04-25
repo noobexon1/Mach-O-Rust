@@ -4,7 +4,9 @@ use std::io::Read;
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 
 use crate::header::*;
-use crate::load_commands::LoadCommandVariant;
+use crate::load_commands::{LoadCommand, LoadCommandVariant};
+
+// TODO: make error handling better... dont just panic. match over things.
 
 pub struct MachO {
     header: MachHeader,
@@ -23,8 +25,11 @@ pub fn parse<R: Read>(file: &mut R) -> MachO {
         Err(e) => panic!("Error on header parsing: {}", e),
     };
 
-    let mut load_commands = Vec::new();
-    
+    let load_commands = match parse_load_commands(file, &header) {
+        Ok(load_commands) => load_commands,
+        Err(e) => panic!("Error on load commands parsing: {}", e),
+    };
+
     MachO {
         header,
         load_commands
@@ -41,6 +46,18 @@ fn parse_header<R: Read>(file: &mut R) -> io::Result<MachHeader> {
         MH_CIGAM_64 => MachHeader64::from_file::<R, LittleEndian>(file, magic),
         _ => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid magic number")),
     }
+}
+
+// TODO: implement a function to get endianness and then refactor.
+fn parse_load_commands<R: Read, E: byteorder::ByteOrder>(file: &mut R, header: &MachHeader) -> io::Result<Vec<LoadCommandVariant>> {
+    let mut load_commands: Vec<LoadCommandVariant> = Vec::new();
+
+    for i in 0..header.ncmds() {
+        let load_command = LoadCommand::from_file::<R, E>(file)?;
+
+    }
+
+    Ok(load_commands)
 }
 
 #[cfg(test)]

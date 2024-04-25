@@ -8,6 +8,29 @@ pub enum MachHeader {
     MH64(MachHeader64),
 }
 
+impl MachHeader {
+    pub fn magic(&self) -> u32 {
+        match self {
+            MachHeader::MH32(header) => header.magic,
+            MachHeader::MH64(header) => header.magic,
+        }
+    }
+
+    pub fn ncmds(&self) -> u32 {
+        match self {
+            MachHeader::MH32(header) => header.ncmds,
+            MachHeader::MH64(header) => header.ncmds,
+        }
+    }
+
+    pub fn sizeofcmds(&self) -> u32 {
+        match self {
+            MachHeader::MH32(header) => header.sizeofcmds,
+            MachHeader::MH64(header) => header.sizeofcmds,
+        }
+    }
+}
+
 pub const MH_MAGIC: u32 = 0xfeedface; // Big endian, 32 bit Mach-O
 pub const MH_CIGAM: u32 = 0xcefaedfe; // Little endian, 32 bit Mach-O
 
