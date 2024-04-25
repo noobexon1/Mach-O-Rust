@@ -70,7 +70,7 @@ fn parse_header<R: Read, E: ByteOrder>(file: &mut R, magic: u32) -> io::Result<M
 fn parse_load_commands<R: Read, E: ByteOrder>(file: &mut R, header: &MachHeader) -> io::Result<Vec<LoadCommandVariant>> {
     let mut load_commands: Vec<LoadCommandVariant> = Vec::new();
 
-    for i in 0..header.ncmds() {
+    for _ in 0..header.ncmds() {
         let load_command = LoadCommand::from_file::<R, E>(file)?;
 
     }
