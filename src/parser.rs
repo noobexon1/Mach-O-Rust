@@ -6,20 +6,7 @@ use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt};
 use crate::constants::*;
 use crate::header::{MachHeader, MachHeader32, MachHeader64, MH_CIGAM, MH_CIGAM_64, MH_MAGIC, MH_MAGIC_64};
 use crate::load_commands::*;
-
-pub struct MachO {
-    header: MachHeader,
-    load_commands: Vec<LoadCommand>,
-}
-
-impl MachO {
-    pub fn get_header(&self) -> &MachHeader {
-        &self.header
-    }
-}
-
-// TODO: split the file into memory chunks and then feed those chunks to my parsers.
-// TODO: use multithreading for load commands parser because they are independent.
+use crate::mach_o::MachO;
 
 pub fn parse<R: Read>(file: &mut R) -> MachO {
     let magic = file.read_u32::<BigEndian>().unwrap();

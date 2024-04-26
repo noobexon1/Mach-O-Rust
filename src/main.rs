@@ -8,6 +8,8 @@ mod header;
 mod load_commands;
 mod constants;
 mod printer;
+mod mach_o;
+mod memory_helpers;
 
 /// A command-line tool written in rust to view and explore files with mach-o format.
 #[derive(Parser)]
@@ -30,6 +32,6 @@ fn main() {
     };
 
     if args.header {
-        printer::print_header(mach_o.get_header());
+        printer::print_header(&mach_o.header);
     }
 }
