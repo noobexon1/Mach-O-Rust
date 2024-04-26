@@ -1,5 +1,5 @@
 use std::io;
-use std::io::Read;
+use std::io::{Read, Seek};
 
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt};
 
@@ -7,8 +7,13 @@ use crate::constants::*;
 use crate::header::{MachHeader, MachHeader32, MachHeader64, MH_CIGAM, MH_CIGAM_64, MH_MAGIC, MH_MAGIC_64};
 use crate::load_commands::*;
 use crate::mach_o::MachO;
+use crate::memory_helpers::make_reader_static;
 
-pub fn parse<R: Read>(file: &mut R) -> MachO {
+pub fn parse<R: Read + Seek>(file: &mut R) -> MachO {
+
+    // TODO: PRINT TO MAKE SURE WORKS :D
+    let mut buffer = make_reader_static(file, 30);
+
     let magic = file.read_u32::<BigEndian>().unwrap();
 
     // TODO: use high order function to execute_with_endian(<func>, <magic>) to minimize boilerplate

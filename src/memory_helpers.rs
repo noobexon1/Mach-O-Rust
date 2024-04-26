@@ -1,8 +1,6 @@
-use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom};
 
-// TODO: the problem is that i need SEEK as well as Read. we will see how to so that.
-pub fn read_static(file: &mut File, size: usize) -> io::Result<Vec<u8>>  {
+pub fn make_reader_static<R: Read + Seek>(file: &mut R, size: usize) -> io::Result<Vec<u8>>  {
     let current_pos = file.stream_position()?;
 
     println!("current pos is {}", file.stream_position()?);
