@@ -186,4 +186,61 @@ pub const MH_CIGAM: u32 = 0xcefaedfe; // Little endian, 32 bit Mach-O
 pub const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
 pub const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
 
-// TODO: add cmd fields for all load commands from here: https://opensource.apple.com/source/xnu/xnu-4903.221.2/EXTERNAL_HEADERS/mach-o/loader.h.auto.html
+// load commands
+pub const LC_REQ_DYLD: u32 = 0x80000000;
+
+// Constants for the cmd field of all load commands, the type
+pub const LC_SEGMENT: u32 = 0x1; // segment of this file to be mapped
+pub const LC_SYMTAB: u32 = 0x2; // link-edit stab symbol table info
+pub const LC_SYMSEG: u32 = 0x3; // link-edit gdb symbol table info (obsolete)
+pub const LC_THREAD: u32 = 0x4; // thread
+pub const LC_UNIXTHREAD: u32 = 0x5; // unix thread (includes a stack)
+pub const LC_LOADFVMLIB: u32 = 0x6; // load a specified fixed VM shared library
+pub const LC_IDFVMLIB: u32 = 0x7; // fixed VM shared library identification
+pub const LC_IDENT: u32 = 0x8; // object identification info (obsolete)
+pub const LC_FVMFILE: u32 = 0x9; // fixed VM file inclusion (internal use)
+pub const LC_PREPAGE: u32 = 0xa; // prepage command (internal use)
+pub const LC_DYSYMTAB: u32 = 0xb; // dynamic link-edit symbol table info
+pub const LC_LOAD_DYLIB: u32 = 0xc; // load a dynamically linked shared library
+pub const LC_ID_DYLIB: u32 = 0xd; // dynamically linked shared lib ident
+pub const LC_LOAD_DYLINKER: u32 = 0xe; // load a dynamic linker
+pub const LC_ID_DYLINKER: u32 = 0xf; // dynamic linker identification
+pub const LC_PREBOUND_DYLIB: u32 = 0x10; // modules prebound for a dynamically linked shared library
+pub const LC_ROUTINES: u32 = 0x11; // image routines
+pub const LC_SUB_FRAMEWORK: u32 = 0x12; // sub framework
+pub const LC_SUB_UMBRELLA: u32 = 0x13; // sub umbrella
+pub const LC_SUB_CLIENT: u32 = 0x14; // sub client
+pub const LC_SUB_LIBRARY: u32 = 0x15; // sub library
+pub const LC_TWOLEVEL_HINTS: u32 = 0x16; // two-level namespace lookup hints
+pub const LC_PREBIND_CKSUM: u32 = 0x17; // prebind checksum
+
+// load a dynamically linked shared library that is allowed to be missing (all symbols are weak imported)
+pub const LC_LOAD_WEAK_DYLIB: u32 = 0x18 | LC_REQ_DYLD;
+
+pub const LC_SEGMENT_64: u32 = 0x19; // 64-bit segment of this file to be mapped
+pub const LC_ROUTINES_64: u32 = 0x1a; // 64-bit image routines
+pub const LC_UUID: u32 = 0x1b; // the uuid
+pub const LC_RPATH: u32 = 0x1c | LC_REQ_DYLD; // runpath additions
+pub const LC_CODE_SIGNATURE: u32 = 0x1d; // local of code signature
+pub const LC_SEGMENT_SPLIT_INFO: u32 = 0x1e; // local of info to split segments
+pub const LC_REEXPORT_DYLIB: u32 = 0x1f | LC_REQ_DYLD; // load and re-export dylib
+pub const LC_LAZY_LOAD_DYLIB: u32 = 0x20; // delay load of dylib until first use
+pub const LC_ENCRYPTION_INFO: u32 = 0x21; // encrypted segment information
+pub const LC_DYLD_INFO: u32 = 0x22; // compressed dyld information
+pub const LC_DYLD_INFO_ONLY: u32 = 0x22 | LC_REQ_DYLD; // compressed dyld information only
+pub const LC_LOAD_UPWARD_DYLIB: u32 = 0x23 | LC_REQ_DYLD; // load upward dylib
+pub const LC_VERSION_MIN_MACOSX: u32 = 0x24; // build for MacOSX min OS version
+pub const LC_VERSION_MIN_IPHONEOS: u32 = 0x25; // build for iPhoneOS min OS version
+pub const LC_FUNCTION_STARTS: u32 = 0x26; // compressed table of function start addresses
+pub const LC_DYLD_ENVIRONMENT: u32 = 0x27; // string for dyld to treat like environment variable
+pub const LC_MAIN: u32 = 0x28 | LC_REQ_DYLD; // replacement for LC_UNIXTHREAD
+pub const LC_DATA_IN_CODE: u32 = 0x29; // table of non-instructions in __text
+pub const LC_SOURCE_VERSION: u32 = 0x2A; // source version used to build binary
+pub const LC_DYLIB_CODE_SIGN_DRS: u32 = 0x2B; // Code signing DRs copied from linked dylibs
+pub const LC_ENCRYPTION_INFO_64: u32 = 0x2C; // 64-bit encrypted segment information
+pub const LC_LINKER_OPTION: u32 = 0x2D; // linker options in MH_OBJECT files
+pub const LC_LINKER_OPTIMIZATION_HINT: u32 = 0x2E; // optimization hints in MH_OBJECT files
+pub const LC_VERSION_MIN_TVOS: u32 = 0x2F; // build for AppleTV min OS version
+pub const LC_VERSION_MIN_WATCHOS: u32 = 0x30; // build for Watch min OS version
+pub const LC_NOTE: u32 = 0x31; // arbitrary data included within a Mach-O file
+pub const LC_BUILD_VERSION: u32 = 0x32; // build for platform min OS version

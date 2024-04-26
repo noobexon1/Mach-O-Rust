@@ -3,11 +3,8 @@ use std::io::Read;
 
 use byteorder::ReadBytesExt;
 
-// TODO: Maybe implement a trait or a function to read an array of 16 bytes because it creates boilerplate in structs...
-
-// TODO: SWAP THIS FOR TRAIT THAT WILL ENFORCE IMPLEMENTATION OF from_file() METHOD!
 pub enum LoadCommand {
-    SegmentCommand,
+    SegmentCommand(SegmentCommand),
     DylibCommand,
     SubFrameWorkCommand,
     SubClientCommand,
@@ -79,7 +76,7 @@ pub struct SegmentCommand32 {
 }
 
 impl SegmentCommand32 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<SegmentCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let segment_command = SegmentCommand32 {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -94,7 +91,7 @@ impl SegmentCommand32 {
             flags: file.read_u32::<E>()?,
         };
 
-        Ok(SegmentCommand::SEG32(segment_command))
+        Ok(LoadCommand::SegmentCommand(SegmentCommand::SEG32(segment_command)))
     }
 
     fn read_segname<R: Read>(file: &mut R) -> io::Result<[u8; 16]> {
@@ -120,7 +117,7 @@ pub struct SegmentCommand64 {
 }
 
 impl SegmentCommand64 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<SegmentCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let segment_command = SegmentCommand64 {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -135,7 +132,7 @@ impl SegmentCommand64 {
             flags: file.read_u32::<E>()?,
         };
 
-        Ok(SegmentCommand::SEG64(segment_command))
+        Ok(LoadCommand::SegmentCommand(SegmentCommand::SEG64(segment_command)))
     }
 
     fn read_segname<R: Read>(file: &mut R) -> io::Result<[u8; 16]> {
