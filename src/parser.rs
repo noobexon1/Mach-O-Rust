@@ -5,7 +5,7 @@ use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt};
 
 use crate::constants::*;
 use crate::header::{MachHeader, MachHeader32, MachHeader64, MH_CIGAM, MH_CIGAM_64, MH_MAGIC, MH_MAGIC_64};
-use crate::load_commands::{LoadCommand, LoadCommandPrefix, SegmentCommand32, SegmentCommand64};
+use crate::load_commands::*;
 
 pub struct MachO {
     header: MachHeader,
@@ -17,6 +17,9 @@ impl MachO {
         &self.header
     }
 }
+
+// TODO: split the file into memory chunks and then feed those chunks to my parsers.
+// TODO: use multithreading for load commands parser because they are independent.
 
 pub fn parse<R: Read>(file: &mut R) -> MachO {
     let magic = file.read_u32::<BigEndian>().unwrap();
@@ -81,7 +84,41 @@ fn parse_load_commands<R: Read, E: ByteOrder>(file: &mut R, header: &MachHeader)
 fn parse_command<R: Read, E: ByteOrder>(file: &mut R, load_command_prefix: &LoadCommandPrefix) -> io::Result<LoadCommand> {
     match load_command_prefix.cmd {
         LC_SEGMENT => SegmentCommand32::from_file::<R, E>(file, load_command_prefix),
+        LC_SYMTAB => SymtabCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_SYMSEG => SymsegCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_THREAD | LC_UNIXTHREAD => ThreadCommand::from_file::<E>(load_command_prefix),
+        // TODO: LC_LOADFVMLIB => (Maybe implement?),
+        // TODO: LC_IDFVMLIB => (Maybe implement?),
+        LC_IDENT => IdentCommand::from_file::<E>(load_command_prefix),
+        // TODO: LC_FVMFILE => (skip. apple's internal use),
+        // TODO: LC_PREPAGE => (skip. apple's internal use),
+        LC_DYSYMTAB => DynSymtabCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_LOAD_DYLIB | LC_ID_DYLIB | LC_LOAD_WEAK_DYLIB | LC_REEXPORT_DYLIB => DylibCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_LOAD_DYLINKER | LC_ID_DYLINKER | LC_DYLD_ENVIRONMENT=> DylinkerCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_PREBOUND_DYLIB => PreboundDylibCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_ROUTINES => RoutinesCommand32::from_file::<R, E>(file, load_command_prefix),
+        LC_SUB_FRAMEWORK => SubFrameWorkCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_SUB_UMBRELLA => SubUmbrellaCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_SUB_CLIENT => SubClientCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_SUB_LIBRARY => SubLibraryCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_TWOLEVEL_HINTS => TwoLevelHintsCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_PREBIND_CKSUM => PrebindCksumCommand::from_file::<R, E>(file, load_command_prefix),
         LC_SEGMENT_64 => SegmentCommand64::from_file::<R, E>(file, load_command_prefix),
+        LC_ROUTINES_64 => RoutinesCommand64::from_file::<R, E>(file, load_command_prefix),
+        LC_UUID => UuidCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_RPATH => RpathCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_CODE_SIGNATURE | LC_SEGMENT_SPLIT_INFO | LC_FUNCTION_STARTS | LC_DATA_IN_CODE | LC_DYLIB_CODE_SIGN_DRS | LC_LINKER_OPTIMIZATION_HINT => LinkeditDataCommand::from_file::<R, E>(file, load_command_prefix),
+        // TODO: LC_LAZY_LOAD_DYLIB => (Maybe implement?),
+        LC_ENCRYPTION_INFO => EncryptionInfoCommand32::from_file::<R, E>(file, load_command_prefix),
+        LC_DYLD_INFO | LC_DYLD_INFO_ONLY => DyldInfoCommand::from_file::<R, E>(file, load_command_prefix),
+        // TODO: LC_LOAD_UPWARD_DYLIB => (Maybe implement?),
+        LC_VERSION_MIN_MACOSX | LC_VERSION_MIN_IPHONEOS | LC_VERSION_MIN_TVOS | LC_VERSION_MIN_WATCHOS => SegmentCommand32::from_file::<R, E>(file, load_command_prefix),
+        LC_MAIN => EntryPointCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_SOURCE_VERSION => SourceVersionCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_ENCRYPTION_INFO_64 => EncryptionInfoCommand64::from_file::<R, E>(file, load_command_prefix),
+        LC_LINKER_OPTION => LinkerOptionCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_NOTE => NoteCommand::from_file::<R, E>(file, load_command_prefix),
+        LC_BUILD_VERSION => BuildVersionCommand::from_file::<R, E>(file, load_command_prefix),
         _ => return Err(io::Error::new(io::ErrorKind::InvalidData, "unknown load command type!")),
     }
 }

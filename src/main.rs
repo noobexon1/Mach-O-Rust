@@ -26,7 +26,7 @@ fn main() {
     let args = Args::parse();
     let mach_o = match File::open(&args.input.as_path()) {
         Ok(mut file) => parser::parse(&mut file),
-        Err(e) => panic!("Error opening input file for reading!"),
+        Err(e) => panic!("Error opening input file for reading! {}", e),
     };
 
     if args.header {

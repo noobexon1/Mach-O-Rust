@@ -5,34 +5,35 @@ use byteorder::ReadBytesExt;
 
 pub enum LoadCommand {
     SegmentCommand(SegmentCommand),
-    DylibCommand,
-    SubFrameWorkCommand,
-    SubClientCommand,
-    SubUmbrellaCommand,
-    SubLibraryCommand,
-    PreboundDylibCommand,
-    DylinkerCommand,
-    ThreadCommand,
-    RoutinesCommand,
-    SymtabCommand,
-    DynSymtabCommand,
-    TwoLevelHintsCommand,
-    PrebindCksumCommand,
-    UuidCommand,
-    RpathCommand,
-    LinkeditDataCommand,
-    EncryptionInfoCommand,
-    VersionMinCommand,
-    BuildVersionCommand,
-    DyldInfoCommand,
-    LinkerOptionCommand,
-    SymsegCommand,
-    IdentCommand,
-    EntryPointCommand,
-    SourceVersionCommand,
-    NoteCommand,
+    DylibCommand(DylibCommand),
+    SubFrameWorkCommand(SubFrameWorkCommand),
+    SubClientCommand(SubClientCommand),
+    SubUmbrellaCommand(SubUmbrellaCommand),
+    SubLibraryCommand(SubLibraryCommand),
+    PreboundDylibCommand(PreboundDylibCommand),
+    DylinkerCommand(DylinkerCommand),
+    ThreadCommand(ThreadCommand),
+    RoutinesCommand(RoutinesCommand),
+    SymtabCommand(SymtabCommand),
+    DynSymtabCommand(DynSymtabCommand),
+    TwoLevelHintsCommand(TwoLevelHintsCommand),
+    PrebindCksumCommand(PrebindCksumCommand),
+    UuidCommand(UuidCommand),
+    RpathCommand(RpathCommand),
+    LinkeditDataCommand(LinkeditDataCommand),
+    EncryptionInfoCommand(EncryptionInfoCommand),
+    VersionMinCommand(VersionMinCommand),
+    BuildVersionCommand(BuildVersionCommand),
+    DyldInfoCommand(DyldInfoCommand),
+    LinkerOptionCommand(LinkerOptionCommand),
+    SymsegCommand(SymsegCommand),
+    IdentCommand(IdentCommand),
+    EntryPointCommand(EntryPointCommand),
+    SourceVersionCommand(SourceVersionCommand),
+    NoteCommand(NoteCommand),
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct LoadCommandPrefix {
     pub cmd: u32,
@@ -55,11 +56,13 @@ pub union LcStr {
     pub ptr: *const u8,
 }
 
+#[derive(Debug)]
 pub enum SegmentCommand {
     SEG32(SegmentCommand32),
     SEG64(SegmentCommand64),
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct SegmentCommand32 {
     pub cmd: u32,
@@ -101,6 +104,7 @@ impl SegmentCommand32 {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct SegmentCommand64 {
     pub cmd: u32,
@@ -142,11 +146,13 @@ impl SegmentCommand64 {
     }
 }
 
+#[derive(Debug)]
 pub enum Section {
     SEC32(Section32),
     SEC64(Section64),
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct Section32 {
     pub sectname: [u8; 16],
@@ -161,6 +167,7 @@ pub struct Section32 {
     pub reserved1: u32,
     pub reserved2: u32,
 }
+
 
 impl Section32 {
     pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R) -> io::Result<Section32> {
@@ -187,6 +194,7 @@ impl Section32 {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct Section64 {
     pub sectname: [u8; 16],
@@ -257,13 +265,13 @@ pub struct DylibCommand {
 }
 
 impl DylibCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<DylibCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let dylib_command = DylibCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             dylib: Dylib::from_file::<R, E>(file)?,
         };
-        Ok(dylib_command)
+        Ok(LoadCommand::DylibCommand(dylib_command))
     }
 }
 
@@ -275,13 +283,13 @@ pub struct SubFrameWorkCommand {
 }
 
 impl SubFrameWorkCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<SubFrameWorkCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let sub_framework_command = SubFrameWorkCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             umbrella: LcStr { offset: file.read_u32::<E>()? },
         };
-        Ok(sub_framework_command)
+        Ok(LoadCommand::SubFrameWorkCommand(sub_framework_command))
     }
 }
 
@@ -293,13 +301,13 @@ pub struct SubClientCommand {
 }
 
 impl SubClientCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<SubClientCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let sub_client_command = SubClientCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             client: LcStr { offset: file.read_u32::<E>()? },
         };
-        Ok(sub_client_command)
+        Ok(LoadCommand::SubClientCommand(sub_client_command))
     }
 }
 
@@ -311,13 +319,13 @@ pub struct SubUmbrellaCommand {
 }
 
 impl SubUmbrellaCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<SubUmbrellaCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let sub_umbrella_command = SubUmbrellaCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             sub_umbrella: LcStr { offset: file.read_u32::<E>()? },
         };
-        Ok(sub_umbrella_command)
+        Ok(LoadCommand::SubUmbrellaCommand(sub_umbrella_command))
     }
 }
 
@@ -329,13 +337,13 @@ pub struct SubLibraryCommand {
 }
 
 impl SubLibraryCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<SubLibraryCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let sub_library_command = SubLibraryCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             sub_library: LcStr { offset: file.read_u32::<E>()? },
         };
-        Ok(sub_library_command)
+        Ok(LoadCommand::SubLibraryCommand(sub_library_command))
     }
 }
 
@@ -349,7 +357,7 @@ pub struct PreboundDylibCommand {
 }
 
 impl PreboundDylibCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<PreboundDylibCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let preboound_dylib_command = PreboundDylibCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -357,7 +365,7 @@ impl PreboundDylibCommand {
             nmodules: file.read_u32::<E>()?,
             linked_modules: LcStr { offset: file.read_u32::<E>()? },
         };
-        Ok(preboound_dylib_command)
+        Ok(LoadCommand::PreboundDylibCommand(preboound_dylib_command))
     }
 }
 
@@ -369,37 +377,41 @@ pub struct DylinkerCommand {
 }
 
 impl DylinkerCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<DylinkerCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let dylinker_command = DylinkerCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             name: LcStr { offset: file.read_u32::<E>()? },
         };
-        Ok(dylinker_command)
+        Ok(LoadCommand::DylinkerCommand(dylinker_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
+//TODO: modify this according to the instructions here: https://opensource.apple.com/source/xnu/xnu-4903.221.2/EXTERNAL_HEADERS/mach-o/loader.h.auto.html
 pub struct ThreadCommand {
     pub cmd: u32,
     pub cmdsize: u32,
 }
 
 impl ThreadCommand {
-    pub fn from_file<E: byteorder::ByteOrder>(load_command: &LoadCommandPrefix) -> io::Result<ThreadCommand> {
+    pub fn from_file<E: byteorder::ByteOrder>(load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let thread_command = ThreadCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
         };
-        Ok(thread_command)
+        Ok(LoadCommand::ThreadCommand(thread_command))
     }
 }
 
+#[derive(Debug)]
 pub enum RoutinesCommand {
     RTN32(RoutinesCommand32),
     RTN64(RoutinesCommand64),
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct RoutinesCommand32 {
     pub cmd: u32,
@@ -415,7 +427,7 @@ pub struct RoutinesCommand32 {
 }
 
 impl RoutinesCommand32 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<RoutinesCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let routines_command = RoutinesCommand32 {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -428,10 +440,11 @@ impl RoutinesCommand32 {
             reserved5: file.read_u32::<E>()?,
             reserved6: file.read_u32::<E>()?,
         };
-        Ok(RoutinesCommand::RTN32(routines_command))
+        Ok(LoadCommand::RoutinesCommand(RoutinesCommand::RTN32(routines_command)))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct RoutinesCommand64 {
     pub cmd: u32,
@@ -447,7 +460,7 @@ pub struct RoutinesCommand64 {
 }
 
 impl RoutinesCommand64 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<RoutinesCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let routines_command = RoutinesCommand64 {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -460,10 +473,11 @@ impl RoutinesCommand64 {
             reserved5: file.read_u64::<E>()?,
             reserved6: file.read_u64::<E>()?,
         };
-        Ok(RoutinesCommand::RTN64(routines_command))
+        Ok(LoadCommand::RoutinesCommand(RoutinesCommand::RTN64(routines_command)))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct SymtabCommand {
     pub cmd: u32,
@@ -475,7 +489,7 @@ pub struct SymtabCommand {
 }
 
 impl SymtabCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<SymtabCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let symtab_command = SymtabCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -484,10 +498,11 @@ impl SymtabCommand {
             stroff: file.read_u32::<E>()?,
             strsize: file.read_u32::<E>()?,
         };
-        Ok(symtab_command)
+        Ok(LoadCommand::SymtabCommand(symtab_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct DynSymtabCommand {
     pub cmd: u32,
@@ -513,7 +528,7 @@ pub struct DynSymtabCommand {
 }
 
 impl DynSymtabCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<DynSymtabCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let dyn_symtab_command = DynSymtabCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -536,10 +551,11 @@ impl DynSymtabCommand {
             locreloff: file.read_u32::<E>()?,
             nlocrel: file.read_u32::<E>()?,
         };
-        Ok(dyn_symtab_command)
+        Ok(LoadCommand::DynSymtabCommand(dyn_symtab_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct DylibTableOfContents {
     pub symbol_index: u32,
@@ -556,11 +572,13 @@ impl DylibTableOfContents {
     }
 }
 
+#[derive(Debug)]
 pub enum DylibModule {
     DMD32(DylibModule32),
     DMD64(DylibModule64),
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct DylibModule32 {
     pub module_name: u32,
@@ -599,6 +617,7 @@ impl DylibModule32 {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct DylibModule64 {
     pub module_name: u32,
@@ -637,6 +656,7 @@ impl DylibModule64 {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct DylibReference {
     pub isym: u32,
@@ -653,6 +673,7 @@ impl DylibReference {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct TwoLevelHintsCommand {
     pub cmd: u32,
@@ -662,17 +683,18 @@ pub struct TwoLevelHintsCommand {
 }
 
 impl TwoLevelHintsCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<TwoLevelHintsCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let two_level_hints_command = TwoLevelHintsCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             offset: file.read_u32::<E>()?,
             nhints: file.read_u32::<E>()?,
         };
-        Ok(two_level_hints_command)
+        Ok(LoadCommand::TwoLevelHintsCommand(two_level_hints_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct TwoLevelHint {
     pub isub_image: u8,
@@ -689,6 +711,7 @@ impl TwoLevelHint {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct PrebindCksumCommand {
     pub cmd: u32,
@@ -697,16 +720,17 @@ pub struct PrebindCksumCommand {
 }
 
 impl PrebindCksumCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<PrebindCksumCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let prebind_checksum_command = PrebindCksumCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             cksum: file.read_u32::<E>()?,
         };
-        Ok(prebind_checksum_command)
+        Ok(LoadCommand::PrebindCksumCommand(prebind_checksum_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct UuidCommand {
     pub cmd: u32,
@@ -715,13 +739,13 @@ pub struct UuidCommand {
 }
 
 impl UuidCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<UuidCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let uuid_command = UuidCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             uuid: Self::read_uuid(file)?,
         };
-        Ok(uuid_command)
+        Ok(LoadCommand::UuidCommand(uuid_command))
     }
 
     fn read_uuid<R: Read>(file: &mut R) -> io::Result<[u8; 16]> {
@@ -739,16 +763,17 @@ pub struct RpathCommand {
 }
 
 impl RpathCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<RpathCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let rpath_command = RpathCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             path: LcStr { offset: file.read_u32::<E>()? },
         };
-        Ok(rpath_command)
+        Ok(LoadCommand::RpathCommand(rpath_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct LinkeditDataCommand {
     pub cmd: u32,
@@ -758,22 +783,24 @@ pub struct LinkeditDataCommand {
 }
 
 impl LinkeditDataCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LinkeditDataCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let linkedit_data_command = LinkeditDataCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             dataoff: file.read_u32::<E>()?,
             datasize: file.read_u32::<E>()?,
         };
-        Ok(linkedit_data_command)
+        Ok(LoadCommand::LinkeditDataCommand(linkedit_data_command))
     }
 }
 
+#[derive(Debug)]
 pub enum EncryptionInfoCommand {
     ENI32(EncryptionInfoCommand32),
     ENI64(EncryptionInfoCommand64),
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct EncryptionInfoCommand32 {
     pub cmd: u32,
@@ -784,7 +811,7 @@ pub struct EncryptionInfoCommand32 {
 }
 
 impl EncryptionInfoCommand32 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<EncryptionInfoCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let encryption_info_command = EncryptionInfoCommand32 {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -792,10 +819,11 @@ impl EncryptionInfoCommand32 {
             cryptsize: file.read_u32::<E>()?,
             cryptid: file.read_u32::<E>()?,
         };
-        Ok(EncryptionInfoCommand::ENI32(encryption_info_command))
+        Ok(LoadCommand::EncryptionInfoCommand(EncryptionInfoCommand::ENI32(encryption_info_command)))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct EncryptionInfoCommand64 {
     pub cmd: u32,
@@ -807,7 +835,7 @@ pub struct EncryptionInfoCommand64 {
 }
 
 impl EncryptionInfoCommand64 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<EncryptionInfoCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let encryption_info_command = EncryptionInfoCommand64 {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -816,10 +844,11 @@ impl EncryptionInfoCommand64 {
             cryptid: file.read_u32::<E>()?,
             pad: file.read_u32::<E>()?,  // Additional padding field
         };
-        Ok(EncryptionInfoCommand::ENI64(encryption_info_command))
+        Ok(LoadCommand::EncryptionInfoCommand(EncryptionInfoCommand::ENI64(encryption_info_command)))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct VersionMinCommand {
     pub cmd: u32,
@@ -829,17 +858,18 @@ pub struct VersionMinCommand {
 }
 
 impl VersionMinCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<VersionMinCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let version_min_command = VersionMinCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             version: file.read_u32::<E>()?,
             sdk: file.read_u32::<E>()?,
         };
-        Ok(version_min_command)
+        Ok(LoadCommand::VersionMinCommand(version_min_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct BuildVersionCommand {
     pub cmd: u32,
@@ -851,7 +881,7 @@ pub struct BuildVersionCommand {
 }
 
 impl BuildVersionCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<BuildVersionCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let build_version_command = BuildVersionCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -860,10 +890,11 @@ impl BuildVersionCommand {
             sdk: file.read_u32::<E>()?,
             ntools: file.read_u32::<E>()?,
         };
-        Ok(build_version_command)
+        Ok(LoadCommand::BuildVersionCommand(build_version_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct DyldInfoCommand {
     pub cmd: u32,
@@ -881,7 +912,7 @@ pub struct DyldInfoCommand {
 }
 
 impl DyldInfoCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<DyldInfoCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let dyld_info_command = DyldInfoCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -896,10 +927,11 @@ impl DyldInfoCommand {
             export_off: file.read_u32::<E>()?,
             export_size: file.read_u32::<E>()?,
         };
-        Ok(dyld_info_command)
+        Ok(LoadCommand::DyldInfoCommand(dyld_info_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct BuildToolVersion {
     pub tool: u32,
@@ -916,6 +948,7 @@ impl BuildToolVersion {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct LinkerOptionCommand {
     pub cmd: u32,
@@ -924,16 +957,17 @@ pub struct LinkerOptionCommand {
 }
 
 impl LinkerOptionCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LinkerOptionCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let linker_option_command = LinkerOptionCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             count: file.read_u32::<E>()?,
         };
-        Ok(linker_option_command)
+        Ok(LoadCommand::LinkerOptionCommand(linker_option_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct SymsegCommand {
     pub cmd: u32,
@@ -943,17 +977,18 @@ pub struct SymsegCommand {
 }
 
 impl SymsegCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<SymsegCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let symseg_command = SymsegCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             offset: file.read_u32::<E>()?,
             size: file.read_u32::<E>()?,
         };
-        Ok(symseg_command)
+        Ok(LoadCommand::SymsegCommand(symseg_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct IdentCommand {
     pub cmd: u32,
@@ -961,15 +996,16 @@ pub struct IdentCommand {
 }
 
 impl IdentCommand {
-    pub fn from_file<E: byteorder::ByteOrder>(load_command: &LoadCommandPrefix) -> io::Result<IdentCommand> {
+    pub fn from_file<E: byteorder::ByteOrder>(load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let ident_command = IdentCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
         };
-        Ok(ident_command)
+        Ok(LoadCommand::IdentCommand(ident_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct EntryPointCommand {
     pub cmd: u32,
@@ -979,17 +1015,18 @@ pub struct EntryPointCommand {
 }
 
 impl EntryPointCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<EntryPointCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let entry_point_command = EntryPointCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             entryoff: file.read_u64::<E>()?,
             stacksize: file.read_u64::<E>()?,
         };
-        Ok(entry_point_command)
+        Ok(LoadCommand::EntryPointCommand(entry_point_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct SourceVersionCommand {
     pub cmd: u32,
@@ -998,16 +1035,17 @@ pub struct SourceVersionCommand {
 }
 
 impl SourceVersionCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<SourceVersionCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let source_version_command = SourceVersionCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
             version: file.read_u64::<E>()?,
         };
-        Ok(source_version_command)
+        Ok(LoadCommand::SourceVersionCommand(source_version_command))
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct DataInCodeEntry {
     pub offset: u32,
@@ -1026,6 +1064,7 @@ impl DataInCodeEntry {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct TlvDescriptor {
     pub thunk: extern "C" fn(&mut TlvDescriptor),
@@ -1033,6 +1072,7 @@ pub struct TlvDescriptor {
     pub offset: usize,
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct NoteCommand {
     pub cmd: u32,
@@ -1043,7 +1083,7 @@ pub struct NoteCommand {
 }
 
 impl NoteCommand {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<NoteCommand> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> io::Result<LoadCommand> {
         let note_command = NoteCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
@@ -1051,7 +1091,7 @@ impl NoteCommand {
             offset: file.read_u64::<E>()?,
             size: file.read_u64::<E>()?,
         };
-        Ok(note_command)
+        Ok(LoadCommand::NoteCommand(note_command))
     }
 
     fn read_data_owner<R: Read>(file: &mut R) -> io::Result<[u8; 16]> {
