@@ -46,7 +46,10 @@ pub struct MachHeader32 {
 }
 
 impl MachHeader32 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeader> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(
+        file: &mut R,
+        magic: u32,
+    ) -> io::Result<MachHeader> {
         let header = MachHeader32 {
             magic,
             cputype: file.read_i32::<E>()?,
@@ -76,7 +79,10 @@ pub struct MachHeader64 {
 }
 
 impl MachHeader64 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, magic: u32) -> io::Result<MachHeader> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(
+        file: &mut R,
+        magic: u32,
+    ) -> io::Result<MachHeader> {
         let header = MachHeader64 {
             magic,
             cputype: file.read_i32::<E>()?,

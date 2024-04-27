@@ -1,5 +1,6 @@
 use crate::constants::*;
-use crate::header::MachHeader;
+use crate::header::{MachHeader, MachHeader32, MachHeader64};
+use crate::load_commands::LoadCommand;
 
 // TODO: decide on printing format
 // TODO: add suppoort for colored printing
@@ -8,25 +9,33 @@ pub fn print_header(header: &MachHeader) {
     println!("Header");
     match header {
         MachHeader::MH32(header) => {
-            print_header_magic(header.magic);
-            print_header_cputype(header.cputype);
-            print_header_cpusubtype(header.cpusubtype);
-            print_header_filetype(header.filetype);
-            println!("\tncmds : 0x{:X}", header.ncmds);
-            println!("\tsizeofcmds : 0x{:X}", header.sizeofcmds);
-            print_header_flags(header.flags);
+            print_header_32(header);
         }
         MachHeader::MH64(header) => {
-            print_header_magic(header.magic);
-            print_header_cputype(header.cputype);
-            print_header_cpusubtype(header.cpusubtype);
-            print_header_filetype(header.filetype);
-            println!("\tncmds : 0x{:X}", header.ncmds);
-            println!("\tsizeofcmds : 0x{:X}", header.sizeofcmds);
-            print_header_flags(header.flags);
-            println!("\treserved : 0x{:X}", header.reserved);
+            print_header_64(header);
         }
     }
+}
+
+fn print_header_32(header: &MachHeader32) {
+    print_header_magic(header.magic);
+    print_header_cputype(header.cputype);
+    print_header_cpusubtype(header.cpusubtype);
+    print_header_filetype(header.filetype);
+    println!("\tncmds : 0x{:X}", header.ncmds);
+    println!("\tsizeofcmds : 0x{:X}", header.sizeofcmds);
+    print_header_flags(header.flags);
+}
+
+fn print_header_64(header: &MachHeader64) {
+    print_header_magic(header.magic);
+    print_header_cputype(header.cputype);
+    print_header_cpusubtype(header.cpusubtype);
+    print_header_filetype(header.filetype);
+    println!("\tncmds : 0x{:X}", header.ncmds);
+    println!("\tsizeofcmds : 0x{:X}", header.sizeofcmds);
+    print_header_flags(header.flags);
+    println!("\treserved : 0x{:X}", header.reserved);
 }
 
 fn print_header_magic(magic: u32) {
@@ -90,7 +99,9 @@ fn print_header_filetype(filetype: u32) {
         MH_DYLIB => "MH_DYLIB (Dynamically bound shared library)",
         MH_DYLINKER => "MH_DYLINKER (Dynamic link editor)",
         MH_BUNDLE => "MH_BUNDLE (Dynamically bound bundle file)",
-        MH_DYLIB_STUB => "MH_DYLIB_STUB (Shared library stub for static linking only, no section contents)",
+        MH_DYLIB_STUB => {
+            "MH_DYLIB_STUB (Shared library stub for static linking only, no section contents)"
+        }
         MH_DSYM => "MH_DSYM (Companion file with only debug sections)",
         MH_KEXT_BUNDLE => "MH_KEXT_BUNDLE (x86_64 kexts)",
         _ => "Unrecogninzed filetype!",
@@ -136,5 +147,13 @@ fn print_header_flags(flags_combined: u32) {
         }
     }
 
-    println!("\tflags : 0x{:X} ({})", flags_combined, decomposed_flags.join(" | "));
+    println!(
+        "\tflags : 0x{:X} ({})",
+        flags_combined,
+        decomposed_flags.join(" | ")
+    );
+}
+
+pub fn print_load_commands(load_commands: Vec<LoadCommand>) {
+
 }

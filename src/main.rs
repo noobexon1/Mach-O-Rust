@@ -3,13 +3,13 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-mod parser;
+mod constants;
 mod header;
 mod load_commands;
-mod constants;
-mod printer;
 mod mach_o;
-mod memory_helpers;
+mod memory_utils;
+mod parser;
+mod printer;
 
 /// A command-line tool written in rust to view and explore files with mach-o format.
 #[derive(Parser)]
