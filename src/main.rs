@@ -11,17 +11,20 @@ mod memory_utils;
 mod parser;
 mod printer;
 
-/// A command-line tool written in rust to view and explore files with mach-o format.
+/// A command-line tool written in Rust to view and explore mach-o files.
 #[derive(Parser)]
 #[command(name = "Mach_O_Rust")]
 #[command(version, about, long_about = None)]
 struct Args {
     /// Input mach-o file
-    #[arg(short, long, value_name = "FILE_PATH", required = true)]
+    #[arg(short = 'i', long = "input", value_name = "FILE_PATH", required = true)]
     input: PathBuf,
-    /// Print the mach-o header
-    #[arg(short = 'f', long = "header", required = false)]
+    /// Print mach-o header
+    #[arg(short = 'e', long = "header", required = false)]
     header: bool,
+    /// Print mach-o load commands
+    #[arg(short = 'l', long, required = false)]
+    load_commands: bool,
 }
 
 fn main() {
@@ -33,5 +36,9 @@ fn main() {
 
     if args.header {
         printer::print_header(&mach_o.header);
+    }
+
+    if args.load_commands {
+        printer::print_load_commands(&mach_o.load_commands);
     }
 }

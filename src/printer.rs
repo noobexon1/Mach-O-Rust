@@ -154,6 +154,6 @@ fn print_header_flags(flags_combined: u32) {
     );
 }
 
-pub fn print_load_commands(load_commands: Vec<LoadCommand>) {
+pub fn print_load_commands(load_commands: &Vec<LoadCommand>) {
 
 }
