@@ -7,7 +7,7 @@ use crate::load_commands::{EncryptionInfoCommand, LoadCommand, RoutinesCommand, 
 pub fn print_header(header: &MachHeader) {
     let mut table = Table::new();
     table.add_row(row![FBbc->"Header", c->"-", c->"-"]);
-    table.add_row(row![Bbbc=>"Field", "Value", "Description"]);
+    table.add_row(row![Bbbc=>"Field", "Value", "Extra Info"]);
 
     match header {
         MachHeader::MH32(header) => print_header_32(header, &mut table),
@@ -51,32 +51,32 @@ fn print_header_magic(magic: u32, table: &mut Table) {
 }
 
 fn print_header_cputype(cputype: i32, table: &mut Table) {
-    let cputype_string = match cputype {
-        CPU_TYPE_ANY => "CPU_TYPE_ANY",
-        CPU_TYPE_VAX => "CPU_TYPE_VAX",
-        CPU_TYPE_ROMP => "CPU_TYPE_ROMP",
-        CPU_TYPE_NS32032 => "CPU_TYPE_NS32032",
-        CPU_TYPE_NS32332 => "CPU_TYPE_NS32332",
-        CPU_TYPE_MC680X0 => "CPU_TYPE_MC680X0",
-        CPU_TYPE_X86 => "CPU_TYPE_X86",
-        CPU_TYPE_I386 => "CPU_TYPE_I386",
-        CPU_TYPE_X86_64 => "CPU_TYPE_X86_64",
-        CPU_TYPE_MIPS => "CPU_TYPE_MIPS",
-        CPU_TYPE_NS32352 => "CPU_TYPE_NS32352",
-        CPU_TYPE_MC98000 => "CPU_TYPE_MC98000",
-        CPU_TYPE_HPPA => "CPU_TYPE_HPPA",
-        CPU_TYPE_ARM => "CPU_TYPE_ARM",
-        CPU_TYPE_ARM64 => "CPU_TYPE_ARM64",
-        CPU_ARCH_ABI64U_TYPE_MC88000 => "CPU_ARCH_ABI64U_TYPE_MC88000",
-        CPU_TYPE_SPARC => "CPU_TYPE_SPARC",
-        CPU_TYPE_I860_LE => "CPU_TYPE_I860_LE",
-        CPU_TYPE_I860_BE => "CPU_TYPE_I860_BE",
-        CPU_TYPE_RS6000 => "CPU_TYPE_RS6000",
-        CPU_TYPE_POWERPC => "CPU_TYPE_POWERPC",
-        CPU_TYPE_POWERPC64 => "CPU_TYPE_POWERPC64",
-        _ => "Unrecognized cputype!",
+    let (cputype_string, info) = match cputype {
+        CPU_TYPE_ANY => ("CPU_TYPE_ANY", "ANY"),
+        CPU_TYPE_VAX => ("CPU_TYPE_VAX", "VAX"),
+        CPU_TYPE_ROMP => ("CPU_TYPE_ROMP", "ROMP"),
+        CPU_TYPE_NS32032 => ("CPU_TYPE_NS32032", "NS32032"),
+        CPU_TYPE_NS32332 => ("CPU_TYPE_NS32332", "NS32332"),
+        CPU_TYPE_MC680X0 => ("CPU_TYPE_MC680X0", "MC680X0"),
+        CPU_TYPE_X86 => ("CPU_TYPE_X86", "X86"),
+        CPU_TYPE_I386 => ("CPU_TYPE_I386", "I386"),
+        CPU_TYPE_X86_64 => ("CPU_TYPE_X86_64", "X86_64"),
+        CPU_TYPE_MIPS => ("CPU_TYPE_MIPS", "MIPS"),
+        CPU_TYPE_NS32352 => ("CPU_TYPE_NS32352", "NS32352"),
+        CPU_TYPE_MC98000 => ("CPU_TYPE_MC98000", "MC98000"),
+        CPU_TYPE_HPPA => ("CPU_TYPE_HPPA", "HPPA"),
+        CPU_TYPE_ARM => ("CPU_TYPE_ARM", "ARM"),
+        CPU_TYPE_ARM64 => ("CPU_TYPE_ARM64", "ARM64"),
+        CPU_ARCH_ABI64U_TYPE_MC88000 => ("CPU_ARCH_ABI64U_TYPE_MC88000", "ABI64U_TYPE_MC88000"),
+        CPU_TYPE_SPARC => ("CPU_TYPE_SPARC", "SPARC"),
+        CPU_TYPE_I860_LE => ("CPU_TYPE_I860_LE", "I860_LE"),
+        CPU_TYPE_I860_BE => ("CPU_TYPE_I860_BE", "I860_BE"),
+        CPU_TYPE_RS6000 => ("CPU_TYPE_RS6000", "RS6000"),
+        CPU_TYPE_POWERPC => ("CPU_TYPE_POWERPC", "POWERPC"),
+        CPU_TYPE_POWERPC64 => ("CPU_TYPE_POWERPC64", "POWERPC64"),
+        _ => ("Unrecognized cputype!", ""),
     };
-    table.add_row(row![ Fcc->"cputype", Fyc->format!("0x{:x}\n({})", cputype, cputype_string),  c->"-"]);
+    table.add_row(row![ Fcc->"cputype", Fyc->format!("0x{:x}\n({})", cputype, cputype_string),  c->info]);
 }
 
 fn print_header_cpusubtype(cpusubtype: i32, table: &mut Table) {
@@ -91,15 +91,15 @@ fn print_header_cpusubtype(cpusubtype: i32, table: &mut Table) {
 
 fn print_header_filetype(filetype: u32, table: &mut Table) {
     let (filetype_string, info) = match filetype {
-        MH_OBJECT => ("MH_OBJECT", "Relocatable object file"),
-        MH_EXECUTE => ("MH_EXECUTE", "Demand paged executable file"),
-        MH_FVMLIB => ("MH_FVMLIB", "Fixed VM shared library file"),
-        MH_CORE => ("MH_CORE", "Core file"),
-        MH_PRELOAD => ("MH_PRELOAD", "Preloaded executable file"),
-        MH_DYLIB => ("MH_DYLIB", "Dynamically bound shared library"),
-        MH_DYLINKER => ("MH_DYLINKER", "Dynamic link editor"),
-        MH_BUNDLE => ("MH_BUNDLE", "Dynamically bound bundle file"),
-        MH_DYLIB_STUB => ("MH_DYLIB_STUB", "Shared library stub for static linking only, no section contents"),
+        MH_OBJECT => ("MH_OBJECT", "Relocatable object file (Intermediate format.\nContains symbol and relocation tables.\nLinker uses it to create executable or libraries by\n resolving symbols and adjusting addresses)"),
+        MH_EXECUTE => ("MH_EXECUTE", "Demand paged executable file (The \"demand paged\" refers to\nhow the OS manages memory for executables.\nIt loads memory pages into physical memory\nonly when they are needed)"),
+        MH_FVMLIB => ("MH_FVMLIB", "Fixed VM shared library file (The \"fixed virtual\" refers to how\nthe shared library is loaded into memory.\nIt means the library will always\noccupy the same address space when loaded)"),
+        MH_CORE => ("MH_CORE", "Core file (Refers to a core dump file.\nUsed primarily for debugging.\nIt\'s essentially a snapshot of a program's memory\nat a specific time. This also includes CPU registers and\n other state info)"),
+        MH_PRELOAD => ("MH_PRELOAD", "Preloaded executable file\n(Designed to be loaded into memory before it is actually executed.\nUsed in strict execution environments)"),
+        MH_DYLIB => ("MH_DYLIB", "Dynamically bound shared library (A shared library that can be loaded\ninto the memory space of 1 or more running processes.\n Linked by the dynamic linker)"),
+        MH_DYLINKER => ("MH_DYLINKER", "Dynamic link editor (A file representing a dynamic linker)"),
+        MH_BUNDLE => ("MH_BUNDLE", "Dynamically bound bundle file (A bundle represents a directory with executable code\nand its resources. basically its an app or plugin)"),
+        MH_DYLIB_STUB => ("MH_DYLIB_STUB", "Shared library stub for static linking only, no section contents (Contains only symbol\ninformation necessary for linking but no actual executable code)"),
         MH_DSYM => ("MH_DSYM", "Companion file with only debug sections"),
         MH_KEXT_BUNDLE => ("MH_KEXT_BUNDLE", "x86_64 kexts"),
         _ => ("", "Unrecogninzed filetype!"),
@@ -109,48 +109,53 @@ fn print_header_filetype(filetype: u32, table: &mut Table) {
 
 fn print_header_flags(flags_combined: u32, table: &mut Table) {
     let flags_to_strings = [
-        (MH_NOUNDEFS, "MH_NOUNDEFS"),
-        (MH_INCRLINK, "MH_INCRLINK"),
-        (MH_DYLDLINK, "MH_DYLDLINK"),
-        (MH_BINDATLOAD, "MH_BINDATLOAD"),
-        (MH_PREBOUND, "MH_PREBOUND"),
-        (MH_SPLIT_SEGS, "MH_SPLIT_SEGS"),
-        (MH_LAZY_INIT, "MH_LAZY_INIT"),
-        (MH_TWOLEVEL, "MH_TWOLEVEL"),
-        (MH_FORCE_FLAT, "MH_FORCE_FLAT"),
-        (MH_NOMULTIDEFS, "MH_NOMULTIDEFS"),
-        (MH_NOFIXPREBINDING, "MH_NOFIXPREBINDING"),
-        (MH_PREBINDABLE, "MH_PREBINDABLE"),
-        (MH_ALLMODSBOUND, "MH_ALLMODSBOUND"),
-        (MH_SUBSECTIONS_VIA_SYMBOLS, "MH_SUBSECTIONS_VIA_SYMBOLS"),
-        (MH_CANONICAL, "MH_CANONICAL"),
-        (MH_WEAK_DEFINES, "MH_WEAK_DEFINES"),
-        (MH_BINDS_TO_WEAK, "MH_BINDS_TO_WEAK"),
-        (MH_ALLOW_STACK_EXECUTION, "MH_ALLOW_STACK_EXECUTION"),
-        (MH_ROOT_SAFE, "MH_ROOT_SAFE"),
-        (MH_SETUID_SAFE, "MH_SETUID_SAFE"),
-        (MH_NO_REEXPORTED_DYLIBS, "MH_NO_REEXPORTED_DYLIBS"),
-        (MH_PIE, "MH_PIE"),
-        (MH_DEAD_STRIPPABLE_DYLIB, "MH_DEAD_STRIPPABLE_DYLIB"),
-        (MH_HAS_TLV_DESCRIPTORS, "MH_HAS_TLV_DESCRIPTORS"),
-        (MH_NO_HEAP_EXECUTION, "MH_NO_HEAP_EXECUTION"),
-        (MH_APP_EXTENSION_SAFE, "MH_APP_EXTENSION_SAFE"),
+        (MH_NOUNDEFS, "MH_NOUNDEFS", "The object file has no undefined references"),
+        (MH_INCRLINK, "MH_INCRLINK", "The object file is the output of an incremental link\nagainst a base file and can't be link edited again"),
+        (MH_DYLDLINK, "MH_DYLDLINK", "The object file is input for the dynamic linker and\ncan't be statically link edited again"),
+        (MH_BINDATLOAD, "MH_BINDATLOAD", "The object file's undefined references are\nbound by the dynamic linker when loaded"),
+        (MH_PREBOUND, "MH_PREBOUND", "The file has its dynamic undefined references prebound"),
+        (MH_SPLIT_SEGS, "MH_SPLIT_SEGS", "The file has its read-only and read-write segments split"),
+        (MH_LAZY_INIT, "MH_LAZY_INIT", "The shared library init routine is to be run lazily\nvia catching memory faults to its writeable segments"),
+        (MH_TWOLEVEL, "MH_TWOLEVEL", "The image is using two-level name space bindings"),
+        (MH_FORCE_FLAT, "MH_FORCE_FLAT", "The executable is forcing all images to use flat name space bindings"),
+        (MH_NOMULTIDEFS, "MH_NOMULTIDEFS", "This umbrella guarantees no multiple definitions\nof symbols in its sub-images so the two-level namespace\nhints can always be used"),
+        (MH_NOFIXPREBINDING, "MH_NOFIXPREBINDING", "Do not have dyld notify the prebinding agent about this executable"),
+        (MH_PREBINDABLE, "MH_PREBINDABLE", "The binary is not prebound but can have its prebinding redone.\nOnly used when MH_PREBOUND is not set"),
+        (MH_ALLMODSBOUND, "MH_ALLMODSBOUND", "Indicates that this binary binds to all two-level namespace\nmodules of its dependent libraries"),
+        (MH_SUBSECTIONS_VIA_SYMBOLS, "MH_SUBSECTIONS_VIA_SYMBOLS", "Safe to divide up the sections into\nsub-sections via symbols for dead code stripping"),
+        (MH_CANONICAL, "MH_CANONICAL", "The binary has been canonicalized via the un-prebind operation"),
+        (MH_WEAK_DEFINES, "MH_WEAK_DEFINES", "The final linked image contains external weak symbols"),
+        (MH_BINDS_TO_WEAK, "MH_BINDS_TO_WEAK", "The final linked image uses weak symbols"),
+        (MH_ALLOW_STACK_EXECUTION, "MH_ALLOW_STACK_EXECUTION", "When this bit is set, all stacks\nin the task will be given stack execution privilege.\nOnly used in MH_EXECUTE filetypes"),
+        (MH_ROOT_SAFE, "MH_ROOT_SAFE", "When this bit is set, the binary declares it is safe for\nuse in processes with uid zero"),
+        (MH_SETUID_SAFE, "MH_SETUID_SAFE", "When this bit is set, the binary declares it is safe\nfor use in processes when issetugid() is true"),
+        (MH_NO_REEXPORTED_DYLIBS, "MH_NO_REEXPORTED_DYLIBS", "When this bit is set on a dylib, the static\nlinker does not need to examine dependent dylibs to see if any are re-exported"),
+        (MH_PIE, "MH_PIE", "When this bit is set, the OS will load the main executable at a random address"),
+        (MH_DEAD_STRIPPABLE_DYLIB, "MH_DEAD_STRIPPABLE_DYLIB", "Only for use on dylibs. When linking\nagainst a dylib that has this bit set, the static linker\nwill automatically not create a load command to the dylib\nif no symbols are being referenced from the dylib"),
+        (MH_HAS_TLV_DESCRIPTORS, "MH_HAS_TLV_DESCRIPTORS", "Contains a section of type S_THREAD_LOCAL_VARIABLES"),
+        (MH_NO_HEAP_EXECUTION, "MH_NO_HEAP_EXECUTION", "When this bit is set, the OS will\nrun the main executable with a non-executable\nheap even on platforms (e.g. i386) that don't require it.\nOnly used in MH_EXECUTE filetypes"),
+        (MH_APP_EXTENSION_SAFE, "MH_APP_EXTENSION_SAFE", "The code was linked for use in an\napplication extension"),
     ];
 
     let mut decomposed_flags = Vec::new();
+    let mut flags_table = Table::new();
 
-    for (flag, name) in flags_to_strings.iter() {
+    for (flag, name, description) in flags_to_strings.iter() {
         if flags_combined & flag != 0 {
             decomposed_flags.push(*name);
+            flags_table.add_row(row![*name, *description]);
         }
     }
-    table.add_row(row![Fcc->"flags", Fyc->format!("0x{:x}\n({})", flags_combined, format!("{}", decomposed_flags.join(" | "))),  c->"-"]);
+
+
+
+    table.add_row(row![Fcc->"flags", Fyc->format!("0x{:x}\n({})", flags_combined, format!("{}", decomposed_flags.join(" | "))), c->flags_table]);
 }
 
 pub fn print_load_commands(load_commands: &Vec<LoadCommand>) {
     let mut table = Table::new();
     table.add_row(row![FBbc->"Load Commands", c->"-", c->"-"]);
-    table.add_row(row![Bbbc=>"Field", "Value", "Description"]);
+    table.add_row(row![Bbbc=>"Field", "Value", "Extra Info"]);
 
     for (index, load_command) in load_commands.iter().enumerate() {
         table.add_row(row![Fmbc->format!("Load Command #{}", index), c->"-", c->"-"]);
