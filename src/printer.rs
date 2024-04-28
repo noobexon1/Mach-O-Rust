@@ -7,7 +7,7 @@ use crate::load_commands::{EncryptionInfoCommand, LoadCommand, RoutinesCommand, 
 pub fn print_header(header: &MachHeader) {
     let mut table = Table::new();
     table.add_row(row![FBbc->"Header", c->"-", c->"-"]);
-    table.add_row(row![Bbbc=>"Field", "Value", "Info"]);
+    table.add_row(row![Bbbc=>"Field", "Value", "Description"]);
 
     match header {
         MachHeader::MH32(header) => print_header_32(header, &mut table),
@@ -22,8 +22,8 @@ fn print_header_32(header: &MachHeader32, table: &mut Table) {
     print_header_cputype(header.cputype, table);
     print_header_cpusubtype(header.cpusubtype, table);
     print_header_filetype(header.filetype, table);
-    table.add_row(row![ Fcc->"ncmds", Fyc->format!("0x{:x}", header.ncmds),  c->"number of load commands"]);
-    table.add_row(row![ Fcc->"sizeofcmds", Fyc->format!("0x{:x}", header.sizeofcmds),  c->"size of all of the load commands in bytes"]);
+    table.add_row(row![ Fcc->"ncmds", Fyc->format!("0x{:x}", header.ncmds),  c->"-"]);
+    table.add_row(row![ Fcc->"sizeofcmds", Fyc->format!("0x{:x}", header.sizeofcmds),  c->"-"]);
     print_header_flags(header.flags, table);
     table.add_row(row![c=>"***", "***", "***"]);
 }
@@ -33,21 +33,21 @@ fn print_header_64(header: &MachHeader64, table: &mut Table) {
     print_header_cputype(header.cputype, table);
     print_header_cpusubtype(header.cpusubtype, table);
     print_header_filetype(header.filetype, table);
-    table.add_row(row![ Fcc->"ncmds", Fyc->format!("0x{:x}", header.ncmds),  c->"number of load commands"]);
-    table.add_row(row![ Fcc->"sizeofcmds", Fyc->format!("0x{:x}", header.sizeofcmds),  c->"size of all of the load commands in bytes"]);
+    table.add_row(row![ Fcc->"ncmds", Fyc->format!("0x{:x}", header.ncmds),  c->"-"]);
+    table.add_row(row![ Fcc->"sizeofcmds", Fyc->format!("0x{:x}", header.sizeofcmds),  c->"-"]);
     print_header_flags(header.flags, table);
     table.add_row(row![ Fcc->"reserved", Fyc->format!("0x{:x}", header.reserved), c->"-"]);
 }
 
 fn print_header_magic(magic: u32, table: &mut Table) {
-    let magic_string = match magic {
-        MH_MAGIC => "MH_MAGIC (Big endian, 32 bit Mach-O)",
-        MH_CIGAM => "MH_CIGAM (Little endian, 32 bit Mach-O)",
-        MH_MAGIC_64 => "MH_MAGIC_64 (Big endian, 64 bit Mach-O)",
-        MH_CIGAM_64 => "MH_CIGAM_64 (Little endian, 64 bit Mach-O)",
-        _ => "Unrecognized mach-o magic!",
+    let (magic_string, info) = match magic {
+        MH_MAGIC => ("MH_MAGIC", "Big endian, 32 bit Mach-O"),
+        MH_CIGAM => ("MH_CIGAM", "Little endian, 32 bit Mach-O"),
+        MH_MAGIC_64 => ("MH_MAGIC_64", "Big endian, 64 bit Mach-O"),
+        MH_CIGAM_64 => ("MH_CIGAM_64", "Little endian, 64 bit Mach-O"),
+        _ => ("", "Unrecognized mach-o magic!"),
     };
-    table.add_row(row![ Fcc->"magic", Fyc->format!("0x{:x}", magic),  c->magic_string]);
+    table.add_row(row![ Fcc->"magic", Fyc->format!("0x{:x}\n({})", magic, magic_string),  c->info]);
 }
 
 fn print_header_cputype(cputype: i32, table: &mut Table) {
@@ -76,7 +76,7 @@ fn print_header_cputype(cputype: i32, table: &mut Table) {
         CPU_TYPE_POWERPC64 => "CPU_TYPE_POWERPC64",
         _ => "Unrecognized cputype!",
     };
-    table.add_row(row![ Fcc->"cputype", Fyc->format!("0x{:x}", cputype),  c->cputype_string]);
+    table.add_row(row![ Fcc->"cputype", Fyc->format!("0x{:x}\n({})", cputype, cputype_string),  c->"-"]);
 }
 
 fn print_header_cpusubtype(cpusubtype: i32, table: &mut Table) {
@@ -86,25 +86,25 @@ fn print_header_cpusubtype(cpusubtype: i32, table: &mut Table) {
         CPU_SUBTYPE_BIG_ENDIAN => "CPU_SUBTYPE_BIG_ENDIAN",
         _ => "Unrecogninzed cpusubtype!",
     };
-    table.add_row(row![ Fcc->"cpusubtype", Fyc->format!("0x{:x}", cpusubtype),  c->cpusubtype_string]);
+    table.add_row(row![ Fcc->"cpusubtype", Fyc->format!("0x{:x}\n({})", cpusubtype, cpusubtype_string),  c->"-"]);
 }
 
 fn print_header_filetype(filetype: u32, table: &mut Table) {
-    let filetype_string = match filetype {
-        MH_OBJECT => "MH_OBJECT (Relocatable object file)",
-        MH_EXECUTE => "MH_EXECUTE (Demand paged executable file)",
-        MH_FVMLIB => "MH_FVMLIB (Fixed VM shared library file)",
-        MH_CORE => "MH_CORE (Core file)",
-        MH_PRELOAD => "MH_PRELOAD (Preloaded executable file)",
-        MH_DYLIB => "MH_DYLIB (Dynamically bound shared library)",
-        MH_DYLINKER => "MH_DYLINKER (Dynamic link editor)",
-        MH_BUNDLE => "MH_BUNDLE (Dynamically bound bundle file)",
-        MH_DYLIB_STUB => "MH_DYLIB_STUB (Shared library stub for static linking only, no section contents)",
-        MH_DSYM => "MH_DSYM (Companion file with only debug sections)",
-        MH_KEXT_BUNDLE => "MH_KEXT_BUNDLE (x86_64 kexts)",
-        _ => "Unrecogninzed filetype!",
+    let (filetype_string, info) = match filetype {
+        MH_OBJECT => ("MH_OBJECT", "Relocatable object file"),
+        MH_EXECUTE => ("MH_EXECUTE", "Demand paged executable file"),
+        MH_FVMLIB => ("MH_FVMLIB", "Fixed VM shared library file"),
+        MH_CORE => ("MH_CORE", "Core file"),
+        MH_PRELOAD => ("MH_PRELOAD", "Preloaded executable file"),
+        MH_DYLIB => ("MH_DYLIB", "Dynamically bound shared library"),
+        MH_DYLINKER => ("MH_DYLINKER", "Dynamic link editor"),
+        MH_BUNDLE => ("MH_BUNDLE", "Dynamically bound bundle file"),
+        MH_DYLIB_STUB => ("MH_DYLIB_STUB", "Shared library stub for static linking only, no section contents"),
+        MH_DSYM => ("MH_DSYM", "Companion file with only debug sections"),
+        MH_KEXT_BUNDLE => ("MH_KEXT_BUNDLE", "x86_64 kexts"),
+        _ => ("", "Unrecogninzed filetype!"),
     };
-    table.add_row(row![ Fcc->"filetype", Fyc->format!("0x{:x}", filetype),  c->filetype_string]);
+    table.add_row(row![ Fcc->"filetype", Fyc->format!("0x{:x}\n({})", filetype, filetype_string),  c->info]);
 }
 
 fn print_header_flags(flags_combined: u32, table: &mut Table) {
@@ -144,13 +144,13 @@ fn print_header_flags(flags_combined: u32, table: &mut Table) {
             decomposed_flags.push(*name);
         }
     }
-    table.add_row(row![ Fcc->"flags", Fyc->format!("0x{:x}", flags_combined),  c->format!("{}", decomposed_flags.join(" | "))]);
+    table.add_row(row![Fcc->"flags", Fyc->format!("0x{:x}\n({})", flags_combined, format!("{}", decomposed_flags.join(" | "))),  c->"-"]);
 }
 
 pub fn print_load_commands(load_commands: &Vec<LoadCommand>) {
     let mut table = Table::new();
     table.add_row(row![FBbc->"Load Commands", c->"-", c->"-"]);
-    table.add_row(row![Bbbc=>"Field", "Value", "Info"]);
+    table.add_row(row![Bbbc=>"Field", "Value", "Description"]);
 
     for (index, load_command) in load_commands.iter().enumerate() {
         table.add_row(row![Fmbc->format!("Load Command #{}", index), c->"-", c->"-"]);
@@ -319,6 +319,6 @@ fn print_lc_cmd_and_cmdsize(cmd: u32, cmdsize: u32, table: &mut Table) {
         _ => "",
     };
 
-    table.add_row(row![ Fcc->"cmd", Fyc->format!("0x{:x} ({})", cmd, cmd_string),  c->"-"]);
+    table.add_row(row![ Fcc->"cmd", Fyc->format!("0x{:x}\n({})", cmd, cmd_string),  c->"-"]);
     table.add_row(row![ Fcc->"cmdsize", Fyc->format!("0x{:x}", cmdsize),  c->"size of the load command in bytes"]);
 }
