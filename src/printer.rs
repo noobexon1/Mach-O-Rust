@@ -1,44 +1,45 @@
+use prettytable::{row, Table};
+
 use crate::constants::*;
 use crate::header::{MachHeader, MachHeader32, MachHeader64};
 use crate::load_commands::LoadCommand;
 
-// TODO: decide on printing format
-// TODO: add suppoort for colored printing
-
 pub fn print_header(header: &MachHeader) {
-    println!("Header");
+    let mut table = Table::new();
+    table.add_row(row![FBbc->"Header", c->"-", c->"-"]);
+    table.add_row(row![Bbbc=>"Field", "Value", "Info"]);
+
     match header {
-        MachHeader::MH32(header) => {
-            print_header_32(header);
-        }
-        MachHeader::MH64(header) => {
-            print_header_64(header);
-        }
+        MachHeader::MH32(header) => print_header_32(header, &mut table),
+        MachHeader::MH64(header) => print_header_64(header, &mut table),
     }
+
+    table.printstd();
+
 }
 
-fn print_header_32(header: &MachHeader32) {
-    print_header_magic(header.magic);
-    print_header_cputype(header.cputype);
-    print_header_cpusubtype(header.cpusubtype);
-    print_header_filetype(header.filetype);
-    println!("\tncmds : 0x{:X}", header.ncmds);
-    println!("\tsizeofcmds : 0x{:X}", header.sizeofcmds);
-    print_header_flags(header.flags);
+fn print_header_32(header: &MachHeader32, table: &mut Table) {
+    print_header_magic(header.magic, table);
+    print_header_cputype(header.cputype, table);
+    print_header_cpusubtype(header.cpusubtype, table);
+    print_header_filetype(header.filetype, table);
+    table.add_row(row![Frc->"ncmds", Fyc->format!("0x{:x}", header.ncmds), Fgc->"number of load commands"]);
+    table.add_row(row![Frc->"sizeofcmds", Fyc->format!("0x{:x}", header.sizeofcmds), Fgc->"size of all of the load commands in bytes"]);
+    print_header_flags(header.flags, table);
 }
 
-fn print_header_64(header: &MachHeader64) {
-    print_header_magic(header.magic);
-    print_header_cputype(header.cputype);
-    print_header_cpusubtype(header.cpusubtype);
-    print_header_filetype(header.filetype);
-    println!("\tncmds : 0x{:X}", header.ncmds);
-    println!("\tsizeofcmds : 0x{:X}", header.sizeofcmds);
-    print_header_flags(header.flags);
-    println!("\treserved : 0x{:X}", header.reserved);
+fn print_header_64(header: &MachHeader64, table: &mut Table) {
+    print_header_magic(header.magic, table);
+    print_header_cputype(header.cputype, table);
+    print_header_cpusubtype(header.cpusubtype, table);
+    print_header_filetype(header.filetype, table);
+    table.add_row(row![Frc->"ncmds", Fyc->format!("0x{:x}", header.ncmds), Fgc->"number of load commands"]);
+    table.add_row(row![Frc->"sizeofcmds", Fyc->format!("0x{:x}", header.sizeofcmds), Fgc->"size of all of the load commands in bytes"]);
+    print_header_flags(header.flags, table);
+    table.add_row(row![Frc->"reserved", Fyc->format!("0x{:x}", header.reserved), c->"-"]);
 }
 
-fn print_header_magic(magic: u32) {
+fn print_header_magic(magic: u32, table: &mut Table) {
     let magic_string = match magic {
         MH_MAGIC => "MH_MAGIC (Big endian, 32 bit Mach-O)",
         MH_CIGAM => "MH_CIGAM (Little endian, 32 bit Mach-O)",
@@ -46,10 +47,10 @@ fn print_header_magic(magic: u32) {
         MH_CIGAM_64 => "MH_CIGAM_64 (Little endian, 64 bit Mach-O)",
         _ => "Unrecognized mach-o magic!",
     };
-    println!("\tmagic : {}", magic_string);
+    table.add_row(row![Frc->"magic", Fyc->format!("0x{:x}", magic), Fgc->magic_string]);
 }
 
-fn print_header_cputype(cputype: i32) {
+fn print_header_cputype(cputype: i32, table: &mut Table) {
     let cputype_string = match cputype {
         CPU_TYPE_ANY => "CPU_TYPE_ANY",
         CPU_TYPE_VAX => "CPU_TYPE_VAX",
@@ -75,21 +76,20 @@ fn print_header_cputype(cputype: i32) {
         CPU_TYPE_POWERPC64 => "CPU_TYPE_POWERPC64",
         _ => "Unrecognized cputype!",
     };
-    println!("\tcputype : {}", cputype_string);
+    table.add_row(row![Frc->"cputype", Fyc->format!("0x{:x}", cputype), Fgc->cputype_string]);
 }
 
-// TODO: Add support for the rest of the cpusubtype consts.
-fn print_header_cpusubtype(cpusubtype: i32) {
+fn print_header_cpusubtype(cpusubtype: i32, table: &mut Table) {
     let cpusubtype_string = match cpusubtype {
         CPU_SUBTYPE_MULTIPLE => "CPU_SUBTYPE_MULTIPLE",
         CPU_SUBTYPE_LITTLE_ENDIAN => "CPU_SUBTYPE_LITTLE_ENDIAN",
         CPU_SUBTYPE_BIG_ENDIAN => "CPU_SUBTYPE_BIG_ENDIAN",
         _ => "Unrecogninzed cpusubtype!",
     };
-    println!("\tcpusubtype : {}", cpusubtype_string);
+    table.add_row(row![Frc->"cpusubtype", Fyc->format!("0x{:x}", cpusubtype), Fgc->cpusubtype_string]);
 }
 
-fn print_header_filetype(filetype: u32) {
+fn print_header_filetype(filetype: u32, table: &mut Table) {
     let filetype_string = match filetype {
         MH_OBJECT => "MH_OBJECT (Relocatable object file)",
         MH_EXECUTE => "MH_EXECUTE (Demand paged executable file)",
@@ -99,17 +99,15 @@ fn print_header_filetype(filetype: u32) {
         MH_DYLIB => "MH_DYLIB (Dynamically bound shared library)",
         MH_DYLINKER => "MH_DYLINKER (Dynamic link editor)",
         MH_BUNDLE => "MH_BUNDLE (Dynamically bound bundle file)",
-        MH_DYLIB_STUB => {
-            "MH_DYLIB_STUB (Shared library stub for static linking only, no section contents)"
-        }
+        MH_DYLIB_STUB => "MH_DYLIB_STUB (Shared library stub for static linking only, no section contents)",
         MH_DSYM => "MH_DSYM (Companion file with only debug sections)",
         MH_KEXT_BUNDLE => "MH_KEXT_BUNDLE (x86_64 kexts)",
         _ => "Unrecogninzed filetype!",
     };
-    println!("\tfiletype : {}", filetype_string);
+    table.add_row(row![Frc->"filetype", Fyc->format!("0x{:x}", filetype), Fgc->filetype_string]);
 }
 
-fn print_header_flags(flags_combined: u32) {
+fn print_header_flags(flags_combined: u32, table: &mut Table) {
     let flags_to_strings = [
         (MH_NOUNDEFS, "MH_NOUNDEFS"),
         (MH_INCRLINK, "MH_INCRLINK"),
@@ -146,15 +144,9 @@ fn print_header_flags(flags_combined: u32) {
             decomposed_flags.push(*name);
         }
     }
-
-    println!(
-        "\tflags : 0x{:X} ({})",
-        flags_combined,
-        decomposed_flags.join(" | ")
-    );
+    table.add_row(row![Frc->"flags", Fyc->format!("0x{:x}", flags_combined), Fgc->format!("{}", decomposed_flags.join(" | "))]);
 }
 
 pub fn print_load_commands(load_commands: &Vec<LoadCommand>) {
     println!("Load Commands");
-    println!("Not yet implemented!");
 }

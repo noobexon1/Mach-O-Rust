@@ -1,14 +1,9 @@
+#[macro_use] extern crate prettytable;
+
 use std::fs::File;
 use std::path::PathBuf;
 
 use clap::Parser;
-use color_eyre::{
-    eyre::WrapErr,
-    Result,
-};
-use ratatui::prelude::{Stylize, Widget};
-
-use crate::interactive::App;
 
 mod constants;
 mod header;
@@ -17,9 +12,7 @@ mod mach_o;
 mod memory_utils;
 mod parser;
 mod printer;
-mod tui;
-mod interactive;
-mod errors;
+
 
 /// A command-line tool written in Rust to view and explore mach-o files.
 #[derive(Parser)]
@@ -40,11 +33,7 @@ struct Args {
     load_commands: bool,
 }
 
-// todo!(handle errors with color_eyre or other way...)
-
-fn main() -> Result<()> {
-    errors::install_hooks()?;
-
+fn main() {
     let args = Args::parse();
     let mach_o = match File::open(&args.file.as_path()) {
         Ok(mut file) => parser::parse(&mut file),
@@ -52,9 +41,7 @@ fn main() -> Result<()> {
     };
 
     if args.interactive {
-        let mut terminal = tui::init(&mach_o).expect("Error on interactive mode");
-        App::default().run(&mut terminal).expect("Error on interactive mode");
-        tui::restore().expect("Error on interactive mode")
+        println!("Not yet implemented!");
     }
 
     if args.header {
@@ -65,5 +52,4 @@ fn main() -> Result<()> {
         printer::print_load_commands(&mach_o.load_commands);
     }
 
-    Ok(())
 }
