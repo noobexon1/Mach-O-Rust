@@ -13,9 +13,8 @@ pub fn print_header(header: &MachHeader) {
         MachHeader::MH32(header) => print_header_32(header, &mut table),
         MachHeader::MH64(header) => print_header_64(header, &mut table),
     }
-
+    
     table.printstd();
-
 }
 
 fn print_header_32(header: &MachHeader32, table: &mut Table) {
