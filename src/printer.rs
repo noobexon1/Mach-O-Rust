@@ -2,7 +2,7 @@ use prettytable::{row, Table};
 
 use crate::constants::*;
 use crate::header::{MachHeader, MachHeader32, MachHeader64};
-use crate::load_commands::{EncryptionInfoCommand, LoadCommand, RoutinesCommand, SegmentCommand};
+use crate::load_commands::{EncryptionInfoCommand, LoadCommand, RoutinesCommand, SegmentCommand, SegmentCommand32, SegmentCommand64};
 
 pub fn print_header(header: &MachHeader) {
     let mut table = Table::new();
@@ -163,10 +163,10 @@ pub fn print_load_commands(load_commands: &Vec<LoadCommand>) {
             LoadCommand::SegmentCommand(command) => {
                 match command {
                     SegmentCommand::SEG32(command) => {
-                        print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                        print_segment_command32(command, &mut table);
                     }
                     SegmentCommand::SEG64(command) => {
-                        print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                        print_segment_command64(command, &mut table);
                     }
                 }
             }
@@ -268,6 +268,32 @@ pub fn print_load_commands(load_commands: &Vec<LoadCommand>) {
     table.printstd();
 }
 
+fn print_segment_command32(command: &SegmentCommand32, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    print_bytes_array(&command.segname, table);
+    table.add_row(row![ Fcc->"vmaddr", Fyc->format!("0x{:x}", command.vmaddr),  c->"-"]);
+    table.add_row(row![ Fcc->"vmsize", Fyc->format!("0x{:x}", command.vmsize),  c->"-"]);
+    table.add_row(row![ Fcc->"fileoff", Fyc->format!("0x{:x}", command.fileoff),  c->"-"]);
+    table.add_row(row![ Fcc->"filesize", Fyc->format!("0x{:x}", command.filesize),  c->"-"]);
+    table.add_row(row![ Fcc->"maxprot", Fyc->format!("{}", command.maxprot),  c->"-"]);
+    table.add_row(row![ Fcc->"initprot", Fyc->format!("{}", command.initprot),  c->"-"]);
+    table.add_row(row![ Fcc->"nsects", Fyc->format!("0x{:x}", command.nsects),  c->"-"]);
+    table.add_row(row![ Fcc->"flags", Fyc->format!("0x{:x}", command.flags),  c->"-"]);
+}
+
+fn print_segment_command64(command: &SegmentCommand64, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    print_bytes_array(&command.segname, table);
+    table.add_row(row![ Fcc->"vmaddr", Fyc->format!("0x{:x}", command.vmaddr),  c->"-"]);
+    table.add_row(row![ Fcc->"vmsize", Fyc->format!("0x{:x}", command.vmsize),  c->"-"]);
+    table.add_row(row![ Fcc->"fileoff", Fyc->format!("0x{:x}", command.fileoff),  c->"-"]);
+    table.add_row(row![ Fcc->"filesize", Fyc->format!("0x{:x}", command.filesize),  c->"-"]);
+    table.add_row(row![ Fcc->"maxprot", Fyc->format!("{}", command.maxprot),  c->"-"]);
+    table.add_row(row![ Fcc->"initprot", Fyc->format!("{}", command.initprot),  c->"-"]);
+    table.add_row(row![ Fcc->"nsects", Fyc->format!("0x{:x}", command.nsects),  c->"-"]);
+    table.add_row(row![ Fcc->"flags", Fyc->format!("0x{:x}", command.flags),  c->"-"]);
+}
+
 fn print_lc_cmd_and_cmdsize(cmd: u32, cmdsize: u32, table: &mut Table) {
     let cmd_string = match cmd {
         LC_SEGMENT => "LC_SEGMENT",
@@ -325,5 +351,23 @@ fn print_lc_cmd_and_cmdsize(cmd: u32, cmdsize: u32, table: &mut Table) {
     };
 
     table.add_row(row![ Fcc->"cmd", Fyc->format!("0x{:x}\n({})", cmd, cmd_string),  c->"-"]);
-    table.add_row(row![ Fcc->"cmdsize", Fyc->format!("0x{:x}", cmdsize),  c->"size of the load command in bytes"]);
+    table.add_row(row![ Fcc->"cmdsize", Fyc->format!("0x{:x}", cmdsize),  c->"-"]);
+}
+
+fn print_bytes_array(bytes: &[u8], table: &mut Table) {
+    let mut result = String::from("[");
+    for (index, &byte) in bytes.iter().enumerate() {
+        if index % 4 == 0 && index != 0 {
+            result.push_str("\n ");
+        }
+        result.push_str(&format!("0x{:02X}", byte));
+        if index < bytes.len() - 1 {
+            result.push_str(", ");
+        }
+    }
+    result.push(']');
+
+    let as_string =  String::from_utf8(bytes.to_vec()).unwrap();
+
+    table.add_row(row![ Fcc->"segname", Fyc->format!("{}", result),  c->as_string]);
 }

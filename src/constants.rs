@@ -214,7 +214,6 @@ pub const LC_SUB_LIBRARY: u32 = 0x15; // sub library
 pub const LC_TWOLEVEL_HINTS: u32 = 0x16; // two-level namespace lookup hints
 pub const LC_PREBIND_CKSUM: u32 = 0x17; // prebind checksum
 
-// load a dynamically linked shared library that is allowed to be missing (all symbols are weak imported)
 pub const LC_LOAD_WEAK_DYLIB: u32 = 0x18 | LC_REQ_DYLD;
 
 pub const LC_SEGMENT_64: u32 = 0x19; // 64-bit segment of this file to be mapped
