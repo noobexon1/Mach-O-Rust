@@ -25,7 +25,6 @@ fn print_header_32(header: &MachHeader32, table: &mut Table) {
     table.add_row(row![ Fcc->"ncmds", Fyc->format!("0x{:x}", header.ncmds),  c->"-"]);
     table.add_row(row![ Fcc->"sizeofcmds", Fyc->format!("0x{:x}", header.sizeofcmds),  c->"-"]);
     print_header_flags(header.flags, table);
-    table.add_row(row![c=>"***", "***", "***"]);
 }
 
 fn print_header_64(header: &MachHeader64, table: &mut Table) {
