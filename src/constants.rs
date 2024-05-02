@@ -213,9 +213,7 @@ pub const LC_SUB_CLIENT: u32 = 0x14; // sub client
 pub const LC_SUB_LIBRARY: u32 = 0x15; // sub library
 pub const LC_TWOLEVEL_HINTS: u32 = 0x16; // two-level namespace lookup hints
 pub const LC_PREBIND_CKSUM: u32 = 0x17; // prebind checksum
-
 pub const LC_LOAD_WEAK_DYLIB: u32 = 0x18 | LC_REQ_DYLD;
-
 pub const LC_SEGMENT_64: u32 = 0x19; // 64-bit segment of this file to be mapped
 pub const LC_ROUTINES_64: u32 = 0x1a; // 64-bit image routines
 pub const LC_UUID: u32 = 0x1b; // the uuid
@@ -243,3 +241,14 @@ pub const LC_VERSION_MIN_TVOS: u32 = 0x2F; // build for AppleTV min OS version
 pub const LC_VERSION_MIN_WATCHOS: u32 = 0x30; // build for Watch min OS version
 pub const LC_NOTE: u32 = 0x31; // arbitrary data included within a Mach-O file
 pub const LC_BUILD_VERSION: u32 = 0x32; // build for platform min OS version
+
+// constants from vm_prot.h
+pub const VM_PROT_READ: i32 = 1;
+pub const VM_PROT_WRITE: i32 = 2;
+pub const VM_PROT_EXECUTE: i32 = 4;
+
+// constants for segment flags
+pub const SG_HIGHVM: u32 = 0x1;
+pub const SG_FVMLIB	: u32 = 0x2;
+pub const SG_NORELOC: u32 = 0x4;
+pub const SG_PROTECTED_VERSION_1: u32 = 0x8;

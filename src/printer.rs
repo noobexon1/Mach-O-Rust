@@ -2,7 +2,7 @@ use prettytable::{row, Table};
 
 use crate::constants::*;
 use crate::header::{MachHeader, MachHeader32, MachHeader64};
-use crate::load_commands::{EncryptionInfoCommand, LoadCommand, RoutinesCommand, SegmentCommand, SegmentCommand32, SegmentCommand64};
+use crate::load_commands::{DylibCommand, EncryptionInfoCommand, LoadCommand, RoutinesCommand, SegmentCommand, SegmentCommand32, SegmentCommand64};
 
 pub fn print_header(header: &MachHeader) {
     let mut table = Table::new();
@@ -147,8 +147,6 @@ fn print_header_flags(flags_combined: u32, table: &mut Table) {
         }
     }
 
-
-
     table.add_row(row![Fcc->"flags", Fyc->format!("0x{:x}\n({})", flags_combined, format!("{}", decomposed_flags.join(" | "))), c->flags_table]);
 }
 
@@ -170,8 +168,8 @@ pub fn print_load_commands(load_commands: &Vec<LoadCommand>) {
                     }
                 }
             }
-            LoadCommand::DylibCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+            LoadCommand::DylibCommand(command) => unsafe {
+                print_dylib_command(command, &mut table);
             }
             LoadCommand::SubFrameWorkCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
@@ -275,10 +273,10 @@ fn print_segment_command32(command: &SegmentCommand32, table: &mut Table) {
     table.add_row(row![ Fcc->"vmsize", Fyc->format!("0x{:x}", command.vmsize),  c->"-"]);
     table.add_row(row![ Fcc->"fileoff", Fyc->format!("0x{:x}", command.fileoff),  c->"-"]);
     table.add_row(row![ Fcc->"filesize", Fyc->format!("0x{:x}", command.filesize),  c->"-"]);
-    table.add_row(row![ Fcc->"maxprot", Fyc->format!("{}", command.maxprot),  c->"-"]);
-    table.add_row(row![ Fcc->"initprot", Fyc->format!("{}", command.initprot),  c->"-"]);
+    print_segment_maxprot_or_initprot(command.maxprot, table);
+    print_segment_maxprot_or_initprot(command.initprot, table);
     table.add_row(row![ Fcc->"nsects", Fyc->format!("0x{:x}", command.nsects),  c->"-"]);
-    table.add_row(row![ Fcc->"flags", Fyc->format!("0x{:x}", command.flags),  c->"-"]);
+    print_segment_flags(command.flags, table);
 }
 
 fn print_segment_command64(command: &SegmentCommand64, table: &mut Table) {
@@ -288,10 +286,20 @@ fn print_segment_command64(command: &SegmentCommand64, table: &mut Table) {
     table.add_row(row![ Fcc->"vmsize", Fyc->format!("0x{:x}", command.vmsize),  c->"-"]);
     table.add_row(row![ Fcc->"fileoff", Fyc->format!("0x{:x}", command.fileoff),  c->"-"]);
     table.add_row(row![ Fcc->"filesize", Fyc->format!("0x{:x}", command.filesize),  c->"-"]);
-    table.add_row(row![ Fcc->"maxprot", Fyc->format!("{}", command.maxprot),  c->"-"]);
-    table.add_row(row![ Fcc->"initprot", Fyc->format!("{}", command.initprot),  c->"-"]);
+    print_segment_maxprot_or_initprot(command.maxprot, table);
+    print_segment_maxprot_or_initprot(command.initprot, table);
     table.add_row(row![ Fcc->"nsects", Fyc->format!("0x{:x}", command.nsects),  c->"-"]);
-    table.add_row(row![ Fcc->"flags", Fyc->format!("0x{:x}", command.flags),  c->"-"]);
+    print_segment_flags(command.flags, table);
+}
+
+unsafe fn print_dylib_command(command: &DylibCommand, mut table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+    table.add_row(row![Frbc->"struct dylib = {", c->"-", c->"-"]);
+    table.add_row(row![ Fcc->"name.offset", Fyc->format!("0x{:x}", command.dylib.name.offset),  c->"-"]);
+    table.add_row(row![ Fcc->"timestamp", Fyc->format!("0x{:x}", command.dylib.timestamp),  c->"-"]);
+    table.add_row(row![ Fcc->"current_version", Fyc->format!("0x{:x}", command.dylib.current_version),  c->"-"]);
+    table.add_row(row![ Fcc->"compatibility_version", Fyc->format!("0x{:x}", command.dylib.compatibility_version),  c->"-"]);
+    table.add_row(row![Frbc->"}", c->"-", c->"-"]);
 }
 
 fn print_lc_cmd_and_cmdsize(cmd: u32, cmdsize: u32, table: &mut Table) {
@@ -370,4 +378,54 @@ fn print_bytes_array(bytes: &[u8], table: &mut Table) {
     let as_string =  String::from_utf8(bytes.to_vec()).unwrap();
 
     table.add_row(row![ Fcc->"segname", Fyc->format!("{}", result),  c->as_string]);
+}
+
+fn print_segment_maxprot_or_initprot(prot: i32, table: &mut Table) {
+    let flags_to_strings = [
+        (VM_PROT_READ, "VM_PROT_READ", "r"),
+        (VM_PROT_WRITE, "VM_PROT_WRITE", "w"),
+        (VM_PROT_EXECUTE, "VM_PROT_EXECUTE", "x"),
+    ];
+
+    let mut decomposed_flags = Vec::new();
+    let mut decomposed_descriptions = Vec::new();
+
+    for (flag, name, description) in flags_to_strings.iter() {
+        if prot & flag != 0 {
+            decomposed_flags.push(*name);
+            decomposed_descriptions.push(*description);
+        } else {
+            decomposed_descriptions.push("_");
+        }
+    }
+    if decomposed_flags.is_empty() {
+        decomposed_flags.push("VM_PROT_NONE")
+    }
+
+    table.add_row(row![ Fcc->"maxprot", Fyc->format!("{}\n({})", prot, decomposed_flags.join(" | ")),  c->format!("{}", decomposed_descriptions.join(""))]);
+}
+
+fn print_segment_flags(flags_combined: u32, table: &mut Table) {
+    let flags_to_strings = [
+        (SG_HIGHVM, "SG_HIGHVM", "the file contents for this segment is for\nthe high part of the VM space, the low part\nis zero filled (for stacks in core files)"),
+        (SG_FVMLIB, "SG_FVMLIB", "this segment is the VM that is allocated by\na fixed VM library, for overlap checking in\nthe link editor"),
+        (SG_NORELOC, "SG_NORELOC", "this segment has nothing that was relocated\nin it and nothing relocated to it, that is\nit maybe safely replaced without relocation"),
+        (SG_PROTECTED_VERSION_1, "SG_PROTECTED_VERSION_1", "This segment is protected.  If the\nsegment starts at file offset 0, the\nfirst page of the segment is not\nprotected.  All other pages of the\nsegment are protected."),
+    ];
+
+    let mut decomposed_flags = Vec::new();
+    let mut flags_table = Table::new();
+
+    for (flag, name, description) in flags_to_strings.iter() {
+        if flags_combined & flag != 0 {
+            decomposed_flags.push(*name);
+            flags_table.add_row(row![*name, *description]);
+        }
+    }
+
+    if decomposed_flags.is_empty() {
+        table.add_row(row![ Fcc->"flags", Fyc->format!("0x{:x}", flags_combined), c->"-"]);
+    } else {
+        table.add_row(row![Fcc->"flags", Fyc->format!("0x{:x}\n({})", flags_combined, format!("{}", decomposed_flags.join(" | "))), c->flags_table]);
+    }
 }
