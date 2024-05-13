@@ -33,6 +33,8 @@ pub enum LoadCommand {
     NoteCommand(NoteCommand),
 }
 
+pub type LcStr = Vec<u8>;
+
 #[derive(Debug)]
 #[repr(C)]
 pub struct LoadCommandPrefix {
@@ -53,7 +55,7 @@ impl LoadCommandPrefix {
 }
 
 #[repr(C)]
-pub union LcStr {
+pub union LcStrUnion {
     pub offset: u32,
     pub ptr: *const u8,
 }
@@ -250,7 +252,7 @@ impl Section64 {
 
 #[repr(C)]
 pub struct Dylib {
-    pub name: LcStr,
+    pub name: LcStrUnion,
     pub timestamp: u32,
     pub current_version: u32,
     pub compatibility_version: u32,
@@ -259,7 +261,7 @@ pub struct Dylib {
 impl Dylib {
     pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R) -> io::Result<Dylib> {
         let dylib = Dylib {
-            name: LcStr {
+            name: LcStrUnion {
                 offset: file.read_u32::<E>()?,
             },
             timestamp: file.read_u32::<E>()?,
@@ -295,7 +297,7 @@ impl DylibCommand {
 pub struct SubFrameWorkCommand {
     pub cmd: u32,
     pub cmdsize: u32,
-    pub umbrella: LcStr,
+    pub umbrella: LcStrUnion,
 }
 
 impl SubFrameWorkCommand {
@@ -306,7 +308,7 @@ impl SubFrameWorkCommand {
         let sub_framework_command = SubFrameWorkCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
-            umbrella: LcStr {
+            umbrella: LcStrUnion {
                 offset: file.read_u32::<E>()?,
             },
         };
@@ -318,7 +320,7 @@ impl SubFrameWorkCommand {
 pub struct SubClientCommand {
     pub cmd: u32,
     pub cmdsize: u32,
-    pub client: LcStr,
+    pub client: LcStrUnion,
 }
 
 impl SubClientCommand {
@@ -329,7 +331,7 @@ impl SubClientCommand {
         let sub_client_command = SubClientCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
-            client: LcStr {
+            client: LcStrUnion {
                 offset: file.read_u32::<E>()?,
             },
         };
@@ -341,7 +343,7 @@ impl SubClientCommand {
 pub struct SubUmbrellaCommand {
     pub cmd: u32,
     pub cmdsize: u32,
-    pub sub_umbrella: LcStr,
+    pub sub_umbrella: LcStrUnion,
 }
 
 impl SubUmbrellaCommand {
@@ -352,7 +354,7 @@ impl SubUmbrellaCommand {
         let sub_umbrella_command = SubUmbrellaCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
-            sub_umbrella: LcStr {
+            sub_umbrella: LcStrUnion {
                 offset: file.read_u32::<E>()?,
             },
         };
@@ -364,7 +366,7 @@ impl SubUmbrellaCommand {
 pub struct SubLibraryCommand {
     pub cmd: u32,
     pub cmdsize: u32,
-    pub sub_library: LcStr,
+    pub sub_library: LcStrUnion,
 }
 
 impl SubLibraryCommand {
@@ -375,7 +377,7 @@ impl SubLibraryCommand {
         let sub_library_command = SubLibraryCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
-            sub_library: LcStr {
+            sub_library: LcStrUnion {
                 offset: file.read_u32::<E>()?,
             },
         };
@@ -387,9 +389,9 @@ impl SubLibraryCommand {
 pub struct PreboundDylibCommand {
     pub cmd: u32,
     pub cmdsize: u32,
-    pub name: LcStr,
+    pub name: LcStrUnion,
     pub nmodules: u32,
-    pub linked_modules: LcStr,
+    pub linked_modules: LcStrUnion,
 }
 
 impl PreboundDylibCommand {
@@ -400,11 +402,11 @@ impl PreboundDylibCommand {
         let preboound_dylib_command = PreboundDylibCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
-            name: LcStr {
+            name: LcStrUnion {
                 offset: file.read_u32::<E>()?,
             },
             nmodules: file.read_u32::<E>()?,
-            linked_modules: LcStr {
+            linked_modules: LcStrUnion {
                 offset: file.read_u32::<E>()?,
             },
         };
@@ -416,7 +418,7 @@ impl PreboundDylibCommand {
 pub struct DylinkerCommand {
     pub cmd: u32,
     pub cmdsize: u32,
-    pub name: LcStr,
+    pub name: LcStrUnion,
 }
 
 impl DylinkerCommand {
@@ -427,7 +429,7 @@ impl DylinkerCommand {
         let dylinker_command = DylinkerCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
-            name: LcStr {
+            name: LcStrUnion {
                 offset: file.read_u32::<E>()?,
             },
         };
@@ -836,7 +838,7 @@ impl UuidCommand {
 pub struct RpathCommand {
     pub cmd: u32,
     pub cmdsize: u32,
-    pub path: LcStr,
+    pub path: LcStrUnion,
 }
 
 impl RpathCommand {
@@ -847,7 +849,7 @@ impl RpathCommand {
         let rpath_command = RpathCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
-            path: LcStr {
+            path: LcStrUnion {
                 offset: file.read_u32::<E>()?,
             },
         };

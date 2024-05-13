@@ -2,7 +2,7 @@ use prettytable::{row, Table};
 
 use crate::constants::*;
 use crate::header::{MachHeader, MachHeader32, MachHeader64};
-use crate::load_commands::{DylibCommand, EncryptionInfoCommand, LoadCommand, RoutinesCommand, SegmentCommand, SegmentCommand32, SegmentCommand64};
+use crate::load_commands::{DylibCommand, EncryptionInfoCommand, LcStr, LoadCommand, RoutinesCommand, SegmentCommand, SegmentCommand32, SegmentCommand64};
 
 pub fn print_header(header: &MachHeader) {
     let mut table = Table::new();
@@ -149,12 +149,12 @@ fn print_header_flags(flags_combined: u32, table: &mut Table) {
     table.add_row(row![Fcc->"flags", Fyc->format!("0x{:x}\n({})", flags_combined, format!("{}", decomposed_flags.join(" | "))), c->flags_table]);
 }
 
-pub fn print_load_commands(load_commands: &Vec<LoadCommand>) {
+pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<LcStr>)) {
     let mut table = Table::new();
     table.add_row(row![FBbc->"Load Commands", c->"-", c->"-"]);
     table.add_row(row![Bbbc=>"Field", "Value", "Extra Info"]);
 
-    for (index, load_command) in load_commands.iter().enumerate() {
+    for (index, load_command) in load_commands.0.iter().enumerate() {
         table.add_row(row![Fmbc->format!("Load Command #{}", index), c->"-", c->"-"]);
         match load_command {
             LoadCommand::SegmentCommand(command) => {
