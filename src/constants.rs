@@ -1,3 +1,9 @@
+// magic
+pub const MH_MAGIC: u32 = 0xfeedface; // Big endian, 32 bit Mach-O
+pub const MH_CIGAM: u32 = 0xcefaedfe; // Little endian, 32 bit Mach-O
+pub const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
+pub const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
+
 // cputype
 pub const CPU_ARCH_MASK: i32 = 0xff000000u32 as i32; // Mask for architecture bits
 pub const CPU_ARCH_ABI64: i32 = 0x01000000u32 as i32; // 64-bit ABI
@@ -32,9 +38,7 @@ pub const CPU_SUBTYPE_LIB64: u32 = 0x80000000; /* 64 bit libraries */
 pub const CPU_SUBTYPE_MULTIPLE: i32 = -1;
 pub const CPU_SUBTYPE_LITTLE_ENDIAN: i32 = 0;
 pub const CPU_SUBTYPE_BIG_ENDIAN: i32 = 1;
-
 pub const CPU_THREADTYPE_NONE: i32 = 0;
-
 pub const CPU_SUBTYPE_VAX_ALL: i32 = 0;
 pub const CPU_SUBTYPE_VAX780: i32 = 1;
 pub const CPU_SUBTYPE_VAX785: i32 = 2;
@@ -48,32 +52,28 @@ pub const CPU_SUBTYPE_VAX8600: i32 = 9;
 pub const CPU_SUBTYPE_VAX8650: i32 = 10;
 pub const CPU_SUBTYPE_VAX8800: i32 = 11;
 pub const CPU_SUBTYPE_UVAXIII: i32 = 12;
-
 pub const CPU_SUBTYPE_MC680X0_ALL: i32 = 1;
 pub const CPU_SUBTYPE_MC68030: i32 = 1;
 pub const CPU_SUBTYPE_MC68040: i32 = 2;
 pub const CPU_SUBTYPE_MC68030_ONLY: i32 = 3;
-
 pub const CPU_SUBTYPE_INTEL_MODEL_ALL: i32 = 0;
 pub const CPU_SUBTYPE_X86_ALL: i32 = 3;
 pub const CPU_SUBTYPE_X86_64_ALL: i32 = 3;
 pub const CPU_SUBTYPE_X86_ARCH1: i32 = 4;
-pub const CPU_SUBTYPE_X86_64_H: i32 = 8; /* Haswell feature subset */
-
+pub const CPU_SUBTYPE_X86_64_H: i32 = 8;
 pub const CPU_THREADTYPE_INTEL_HTT: i32 = 1;
-
 pub const CPU_SUBTYPE_MIPS_ALL: i32 = 0;
 pub const CPU_SUBTYPE_MIPS_R2300: i32 = 1;
 pub const CPU_SUBTYPE_MIPS_R2600: i32 = 2;
 pub const CPU_SUBTYPE_MIPS_R2800: i32 = 3;
-pub const CPU_SUBTYPE_MIPS_R2000A: i32 = 4; // pmax
+pub const CPU_SUBTYPE_MIPS_R2000A: i32 = 4;
 pub const CPU_SUBTYPE_MIPS_R2000: i32 = 5;
-pub const CPU_SUBTYPE_MIPS_R3000A: i32 = 6; // 3max
+pub const CPU_SUBTYPE_MIPS_R3000A: i32 = 6;
 pub const CPU_SUBTYPE_MIPS_R3000: i32 = 7;
 pub const CPU_SUBTYPE_MC98000_ALL: i32 = 0;
 pub const CPU_SUBTYPE_MC98601: i32 = 1;
 pub const CPU_SUBTYPE_HPPA_ALL: i32 = 0;
-pub const CPU_SUBTYPE_HPPA_7100: i32 = 0; // compat
+pub const CPU_SUBTYPE_HPPA_7100: i32 = 0;
 pub const CPU_SUBTYPE_HPPA_7100LC: i32 = 1;
 pub const CPU_SUBTYPE_MC88000_ALL: i32 = 0;
 pub const CPU_SUBTYPE_MC88100: i32 = 1;
@@ -81,7 +81,6 @@ pub const CPU_SUBTYPE_MC88110: i32 = 2;
 pub const CPU_SUBTYPE_SPARC_ALL: i32 = 0;
 pub const CPU_SUBTYPE_I860_ALL: i32 = 0;
 pub const CPU_SUBTYPE_I860_860: i32 = 1;
-
 pub const CPU_SUBTYPE_POWERPC_ALL: i32 = 0;
 pub const CPU_SUBTYPE_POWERPC_601: i32 = 1;
 pub const CPU_SUBTYPE_POWERPC_602: i32 = 2;
@@ -95,23 +94,21 @@ pub const CPU_SUBTYPE_POWERPC_750: i32 = 9;
 pub const CPU_SUBTYPE_POWERPC_7400: i32 = 10;
 pub const CPU_SUBTYPE_POWERPC_7450: i32 = 11;
 pub const CPU_SUBTYPE_POWERPC_970: i32 = 100;
-
 pub const CPU_SUBTYPE_ARM_ALL: i32 = 0;
 pub const CPU_SUBTYPE_ARM_V4T: i32 = 5;
 pub const CPU_SUBTYPE_ARM_V6: i32 = 6;
 pub const CPU_SUBTYPE_ARM_V5TEJ: i32 = 7;
 pub const CPU_SUBTYPE_ARM_XSCALE: i32 = 8;
 pub const CPU_SUBTYPE_ARM_V7: i32 = 9;
-pub const CPU_SUBTYPE_ARM_V7F: i32 = 10; // Cortex A9
-pub const CPU_SUBTYPE_ARM_V7S: i32 = 11; // Swift
+pub const CPU_SUBTYPE_ARM_V7F: i32 = 10;
+pub const CPU_SUBTYPE_ARM_V7S: i32 = 11;
 pub const CPU_SUBTYPE_ARM_V7K: i32 = 12;
-pub const CPU_SUBTYPE_ARM_V6M: i32 = 14; // Not meant to be run under xnu
-pub const CPU_SUBTYPE_ARM_V7M: i32 = 15; // Not meant to be run under xnu
-pub const CPU_SUBTYPE_ARM_V7EM: i32 = 16; // Not meant to be run under xnu
+pub const CPU_SUBTYPE_ARM_V6M: i32 = 14;
+pub const CPU_SUBTYPE_ARM_V7M: i32 = 15;
+pub const CPU_SUBTYPE_ARM_V7EM: i32 = 16;
 pub const CPU_SUBTYPE_ARM_V8: i32 = 13;
 pub const CPU_SUBTYPE_ARM64_ALL: i32 = 0;
 pub const CPU_SUBTYPE_ARM64_V8: i32 = 1;
-
 pub const CPUFAMILY_UNKNOWN: u32 = 0;
 pub const CPUFAMILY_POWERPC_G3: u32 = 0xcee41549;
 pub const CPUFAMILY_POWERPC_G4: u32 = 0x77c184ae;
@@ -179,12 +176,6 @@ pub const MH_DEAD_STRIPPABLE_DYLIB: u32 = 0x400000; // When linking, the static 
 pub const MH_HAS_TLV_DESCRIPTORS: u32 = 0x800000; // Contains a section of type S_THREAD_LOCAL_VARIABLES
 pub const MH_NO_HEAP_EXECUTION: u32 = 0x1000000; // Runs the main executable with a non-executable heap
 pub const MH_APP_EXTENSION_SAFE: u32 = 0x02000000; // Linked for use in an application extension
-
-pub const MH_MAGIC: u32 = 0xfeedface; // Big endian, 32 bit Mach-O
-pub const MH_CIGAM: u32 = 0xcefaedfe; // Little endian, 32 bit Mach-O
-
-pub const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
-pub const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
 
 // load commands
 pub const LC_REQ_DYLD: u32 = 0x80000000;

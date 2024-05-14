@@ -13,7 +13,6 @@ mod memory_utils;
 mod parser;
 mod printer;
 
-
 /// A command-line tool written in Rust to view and explore mach-o files.
 #[derive(Parser)]
 #[command(name = "Mach_O_Rust")]
