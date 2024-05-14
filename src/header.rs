@@ -31,9 +31,6 @@ impl MachHeader {
     }
 }
 
-pub const MH_MAGIC: u32 = 0xfeedface; // Big endian, 32 bit Mach-O
-pub const MH_CIGAM: u32 = 0xcefaedfe; // Little endian, 32 bit Mach-O
-
 #[repr(C)]
 pub struct MachHeader32 {
     pub magic: u32,
@@ -62,9 +59,6 @@ impl MachHeader32 {
         Ok(MachHeader::MH32(header))
     }
 }
-
-pub const MH_MAGIC_64: u32 = 0xfeedfacf; // Big endian, 64 bit Mach-O
-pub const MH_CIGAM_64: u32 = 0xcffaedfe; // Little endian, 64 bit Mach-O
 
 #[repr(C)]
 pub struct MachHeader64 {

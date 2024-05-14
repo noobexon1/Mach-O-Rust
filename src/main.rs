@@ -37,7 +37,7 @@ fn main() {
     let args = Args::parse();
     let mach_o = match File::open(&args.file.as_path()) {
         Ok(mut file) => parser::parse(&mut file),
-        Err(e) => panic!("Error opening input file for reading! {}", e),
+        Err(e) => panic!("Error: Could not open input file for reading! {}", e),
     };
 
     if args.interactive {
