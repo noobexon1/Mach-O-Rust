@@ -168,96 +168,181 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<LcStr>)) {
                 }
             }
             LoadCommand::DylibCommand(command) => unsafe {
-                print_dylib_command(command, &mut table);
+                print_dylib_command(command, &load_commands.1[index] ,&mut table);
             }
             LoadCommand::SubFrameWorkCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"umbrella (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
             }
             LoadCommand::SubClientCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"client (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
             }
             LoadCommand::SubUmbrellaCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"sub_umbrella (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
             }
             LoadCommand::SubLibraryCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"sub_library (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
             }
             LoadCommand::PreboundDylibCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                // TODO: this is problematic because this command has 2 lc_str in it. this counters my assumption that lcstrs vector and load_commands vector will be the same size...
             }
             LoadCommand::DylinkerCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"name (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
             }
             LoadCommand::ThreadCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                // TODO: implement this after we manage to make it work in parser.rs as well.
             }
             LoadCommand::RoutinesCommand(command) => {
                 match command {
                     RoutinesCommand::RTN32(command) => {
                         print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                        table.add_row(row![ Fcc->"init_address", Fyc->format!("0x{:x}", command.init_address),  c->"-"]);
+                        table.add_row(row![ Fcc->"init_module", Fyc->format!("0x{:x}", command.init_module),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved1", Fyc->format!("0x{:x}", command.reserved1),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved2", Fyc->format!("0x{:x}", command.reserved2),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved3", Fyc->format!("0x{:x}", command.reserved3),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved4", Fyc->format!("0x{:x}", command.reserved4),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved5", Fyc->format!("0x{:x}", command.reserved5),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved6", Fyc->format!("0x{:x}", command.reserved6),  c->"-"]);
+
                     }
                     RoutinesCommand::RTN64(command) => {
                         print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                        table.add_row(row![ Fcc->"init_address", Fyc->format!("0x{:x}", command.init_address),  c->"-"]);
+                        table.add_row(row![ Fcc->"init_module", Fyc->format!("0x{:x}", command.init_module),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved1", Fyc->format!("0x{:x}", command.reserved1),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved2", Fyc->format!("0x{:x}", command.reserved2),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved3", Fyc->format!("0x{:x}", command.reserved3),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved4", Fyc->format!("0x{:x}", command.reserved4),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved5", Fyc->format!("0x{:x}", command.reserved5),  c->"-"]);
+                        table.add_row(row![ Fcc->"reserved6", Fyc->format!("0x{:x}", command.reserved6),  c->"-"]);
                     }
                 }
             }
             LoadCommand::SymtabCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"symoff", Fyc->format!("0x{:x}", command.symoff),  c->"-"]);
+                table.add_row(row![ Fcc->"nsyms", Fyc->format!("0x{:x}", command.nsyms),  c->"-"]);
+                table.add_row(row![ Fcc->"stroff", Fyc->format!("0x{:x}", command.stroff),  c->"-"]);
+                table.add_row(row![ Fcc->"strsize", Fyc->format!("0x{:x}", command.strsize),  c->"-"]);
             }
             LoadCommand::DynSymtabCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"ilocalsym", Fyc->format!("0x{:x}", command.ilocalsym),  c->"-"]);
+                table.add_row(row![ Fcc->"nlocalsym", Fyc->format!("0x{:x}", command.nlocalsym),  c->"-"]);
+                table.add_row(row![ Fcc->"iextdefsym", Fyc->format!("0x{:x}", command.iextdefsym),  c->"-"]);
+                table.add_row(row![ Fcc->"nextdefsym", Fyc->format!("0x{:x}", command.nextdefsym),  c->"-"]);
+                table.add_row(row![ Fcc->"iundefsym", Fyc->format!("0x{:x}", command.iundefsym),  c->"-"]);
+                table.add_row(row![ Fcc->"nundefsym", Fyc->format!("0x{:x}", command.nundefsym),  c->"-"]);
+                table.add_row(row![ Fcc->"tocoff", Fyc->format!("0x{:x}", command.tocoff),  c->"-"]);
+                table.add_row(row![ Fcc->"ntoc", Fyc->format!("0x{:x}", command.ntoc),  c->"-"]);
+                table.add_row(row![ Fcc->"modtaboff", Fyc->format!("0x{:x}", command.modtaboff),  c->"-"]);
+                table.add_row(row![ Fcc->"nmodtab", Fyc->format!("0x{:x}", command.nmodtab),  c->"-"]);
+                table.add_row(row![ Fcc->"extrefsymoff", Fyc->format!("0x{:x}", command.extrefsymoff),  c->"-"]);
+                table.add_row(row![ Fcc->"nextrefsyms", Fyc->format!("0x{:x}", command.nextrefsyms),  c->"-"]);
+                table.add_row(row![ Fcc->"indirectsymoff", Fyc->format!("0x{:x}", command.indirectsymoff),  c->"-"]);
+                table.add_row(row![ Fcc->"nindirectsyms", Fyc->format!("0x{:x}", command.nindirectsyms),  c->"-"]);
+                table.add_row(row![ Fcc->"extreloff", Fyc->format!("0x{:x}", command.extreloff),  c->"-"]);
+                table.add_row(row![ Fcc->"nextrel", Fyc->format!("0x{:x}", command.nextrel),  c->"-"]);
+                table.add_row(row![ Fcc->"locreloff", Fyc->format!("0x{:x}", command.locreloff),  c->"-"]);
+                table.add_row(row![ Fcc->"nlocrel", Fyc->format!("0x{:x}", command.nlocrel),  c->"-"]);
             }
             LoadCommand::TwoLevelHintsCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", command.offset),  c->"-"]);
+                table.add_row(row![ Fcc->"nhints", Fyc->format!("0x{:x}", command.nhints),  c->"-"]);
             }
             LoadCommand::PrebindCksumCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"cksum", Fyc->format!("0x{:x}", command.cksum),  c->"-"]);
             }
             LoadCommand::UuidCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                //TODO print as bytes...
             }
             LoadCommand::RpathCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"path (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
             }
             LoadCommand::LinkeditDataCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"dataoff", Fyc->format!("0x{:x}", command.dataoff),  c->"-"]);
+                table.add_row(row![ Fcc->"datasize", Fyc->format!("0x{:x}", command.datasize),  c->"-"]);
             }
             LoadCommand::EncryptionInfoCommand(command) => {
                 match command {
                     EncryptionInfoCommand::ENI32(command) => {
                         print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                        table.add_row(row![ Fcc->"cryptoff", Fyc->format!("0x{:x}", command.cryptoff),  c->"-"]);
+                        table.add_row(row![ Fcc->"cryptsize", Fyc->format!("0x{:x}", command.cryptsize),  c->"-"]);
+                        table.add_row(row![ Fcc->"cryptid", Fyc->format!("0x{:x}", command.cryptid),  c->"-"]);
                     }
                     EncryptionInfoCommand::ENI64(command) => {
                         print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                        table.add_row(row![ Fcc->"cryptoff", Fyc->format!("0x{:x}", command.cryptoff),  c->"-"]);
+                        table.add_row(row![ Fcc->"cryptsize", Fyc->format!("0x{:x}", command.cryptsize),  c->"-"]);
+                        table.add_row(row![ Fcc->"cryptid", Fyc->format!("0x{:x}", command.cryptid),  c->"-"]);
+                        table.add_row(row![ Fcc->"pad", Fyc->format!("0x{:x}", command.pad),  c->"-"]);
                     }
                 }
             }
             LoadCommand::VersionMinCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"version", Fyc->format!("0x{:x}", command.version),  c->"-"]);
+                table.add_row(row![ Fcc->"sdk", Fyc->format!("0x{:x}", command.sdk),  c->"-"]);
             }
             LoadCommand::BuildVersionCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"platform", Fyc->format!("0x{:x}", command.platform),  c->"-"]);
+                table.add_row(row![ Fcc->"minos", Fyc->format!("0x{:x}", command.minos),  c->"-"]);
+                table.add_row(row![ Fcc->"sdk", Fyc->format!("0x{:x}", command.sdk),  c->"-"]);
+                table.add_row(row![ Fcc->"ntools", Fyc->format!("0x{:x}", command.ntools),  c->"-"]);
             }
             LoadCommand::DyldInfoCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"rebase_off", Fyc->format!("0x{:x}", command.rebase_off),  c->"-"]);
+                table.add_row(row![ Fcc->"rebase_size", Fyc->format!("0x{:x}", command.rebase_size),  c->"-"]);
+                table.add_row(row![ Fcc->"bind_off", Fyc->format!("0x{:x}", command.bind_off),  c->"-"]);
+                table.add_row(row![ Fcc->"bind_size", Fyc->format!("0x{:x}", command.bind_size),  c->"-"]);
+                table.add_row(row![ Fcc->"weak_bind_off", Fyc->format!("0x{:x}", command.weak_bind_off),  c->"-"]);
+                table.add_row(row![ Fcc->"weak_bind_size", Fyc->format!("0x{:x}", command.weak_bind_size),  c->"-"]);
+                table.add_row(row![ Fcc->"lazy_bind_off", Fyc->format!("0x{:x}", command.lazy_bind_off),  c->"-"]);
+                table.add_row(row![ Fcc->"lazy_bind_size", Fyc->format!("0x{:x}", command.lazy_bind_size),  c->"-"]);
+                table.add_row(row![ Fcc->"export_off", Fyc->format!("0x{:x}", command.export_off),  c->"-"]);
+                table.add_row(row![ Fcc->"export_size", Fyc->format!("0x{:x}", command.export_size),  c->"-"]);
             }
             LoadCommand::LinkerOptionCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"count", Fyc->format!("0x{:x}", command.count),  c->"-"]);
             }
             LoadCommand::SymsegCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", command.offset),  c->"-"]);
+                table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", command.size),  c->"-"]);
             }
             LoadCommand::IdentCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
             }
             LoadCommand::EntryPointCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"entryoff", Fyc->format!("0x{:x}", command.entryoff),  c->"-"]);
+                table.add_row(row![ Fcc->"stacksize", Fyc->format!("0x{:x}", command.stacksize),  c->"-"]);
             }
             LoadCommand::SourceVersionCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                table.add_row(row![ Fcc->"version", Fyc->format!("0x{:x}", command.version),  c->"-"]);
             }
             LoadCommand::NoteCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+                //TODO: print as bytes...
+                table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", command.offset),  c->"-"]);
+                table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", command.size),  c->"-"]);
             }
         }
         table.add_row(row![c=>"-", "-", "-"]);
@@ -267,7 +352,7 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<LcStr>)) {
 
 fn print_segment_command32(command: &SegmentCommand32, table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
-    print_bytes_array(&command.segname, table);
+    print_segname_bytes_array(&command.segname, table);
     table.add_row(row![ Fcc->"vmaddr", Fyc->format!("0x{:x}", command.vmaddr),  c->"-"]);
     table.add_row(row![ Fcc->"vmsize", Fyc->format!("0x{:x}", command.vmsize),  c->"-"]);
     table.add_row(row![ Fcc->"fileoff", Fyc->format!("0x{:x}", command.fileoff),  c->"-"]);
@@ -280,7 +365,7 @@ fn print_segment_command32(command: &SegmentCommand32, table: &mut Table) {
 
 fn print_segment_command64(command: &SegmentCommand64, table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
-    print_bytes_array(&command.segname, table);
+    print_segname_bytes_array(&command.segname, table);
     table.add_row(row![ Fcc->"vmaddr", Fyc->format!("0x{:x}", command.vmaddr),  c->"-"]);
     table.add_row(row![ Fcc->"vmsize", Fyc->format!("0x{:x}", command.vmsize),  c->"-"]);
     table.add_row(row![ Fcc->"fileoff", Fyc->format!("0x{:x}", command.fileoff),  c->"-"]);
@@ -291,77 +376,7 @@ fn print_segment_command64(command: &SegmentCommand64, table: &mut Table) {
     print_segment_flags(command.flags, table);
 }
 
-unsafe fn print_dylib_command(command: &DylibCommand, mut table: &mut Table) {
-    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-    table.add_row(row![Frbc->"struct dylib = {", c->"-", c->"-"]);
-    table.add_row(row![ Fcc->"name.offset", Fyc->format!("0x{:x}", command.dylib.name.offset),  c->"-"]);
-    table.add_row(row![ Fcc->"timestamp", Fyc->format!("0x{:x}", command.dylib.timestamp),  c->"-"]);
-    table.add_row(row![ Fcc->"current_version", Fyc->format!("0x{:x}", command.dylib.current_version),  c->"-"]);
-    table.add_row(row![ Fcc->"compatibility_version", Fyc->format!("0x{:x}", command.dylib.compatibility_version),  c->"-"]);
-    table.add_row(row![Frbc->"}", c->"-", c->"-"]);
-}
-
-fn print_lc_cmd_and_cmdsize(cmd: u32, cmdsize: u32, table: &mut Table) {
-    let cmd_string = match cmd {
-        LC_SEGMENT => "LC_SEGMENT",
-        LC_SYMTAB => "LC_SYMTAB",
-        LC_SYMSEG => "LC_SYMSEG",
-        LC_THREAD => "LC_THREAD",
-        LC_UNIXTHREAD => "LC_UNIXTHREAD",
-        LC_LOADFVMLIB => "LC_LOADFVMLIB",
-        LC_IDFVMLIB =>"LC_IDFVMLIB",
-        LC_IDENT => "LC_IDENT",
-        LC_FVMFILE => "LC_FVMFILE",
-        LC_PREPAGE => "LC_PREPAGE",
-        LC_DYSYMTAB => "LC_DYSYMTAB",
-        LC_LOAD_DYLIB => "LC_LOAD_DYLIB",
-        LC_ID_DYLIB => "LC_ID_DYLIB",
-        LC_LOAD_DYLINKER => "LC_LOAD_DYLINKER",
-        LC_ID_DYLINKER => "LC_ID_DYLINKER",
-        LC_PREBOUND_DYLIB => "LC_PREBOUND_DYLIB",
-        LC_ROUTINES => "LC_ROUTINES",
-        LC_SUB_FRAMEWORK => "LC_SUB_FRAMEWORK",
-        LC_SUB_UMBRELLA => "LC_SUB_UMBRELLA",
-        LC_SUB_CLIENT => "LC_SUB_CLIENT",
-        LC_SUB_LIBRARY => "LC_SUB_LIBRARY",
-        LC_TWOLEVEL_HINTS => "LC_TWOLEVEL_HINTS",
-        LC_PREBIND_CKSUM => "LC_PREBIND_CKSUM",
-        LC_LOAD_WEAK_DYLIB => "LC_LOAD_WEAK_DYLIB",
-        LC_SEGMENT_64 => "LC_SEGMENT_64",
-        LC_ROUTINES_64 => "LC_ROUTINES_64",
-        LC_UUID => "LC_UUID",
-        LC_RPATH => "LC_RPATH",
-        LC_CODE_SIGNATURE => "LC_CODE_SIGNATURE",
-        LC_SEGMENT_SPLIT_INFO => "LC_SEGMENT_SPLIT_INFO",
-        LC_REEXPORT_DYLIB => "LC_REEXPORT_DYLIB",
-        LC_LAZY_LOAD_DYLIB => "LC_LAZY_LOAD_DYLIB",
-        LC_ENCRYPTION_INFO => "LC_ENCRYPTION_INFO",
-        LC_DYLD_INFO => "LC_DYLD_INFO",
-        LC_DYLD_INFO_ONLY => "LC_DYLD_INFO_ONLY",
-        LC_LOAD_UPWARD_DYLIB => "LC_LOAD_UPWARD_DYLIB",
-        LC_VERSION_MIN_MACOSX => "LC_VERSION_MIN_MACOSX",
-        LC_VERSION_MIN_IPHONEOS => "LC_VERSION_MIN_IPHONEOS",
-        LC_FUNCTION_STARTS => "LC_FUNCTION_STARTS",
-        LC_DYLD_ENVIRONMENT => "LC_DYLD_ENVIRONMENT",
-        LC_MAIN => "LC_MAIN",
-        LC_DATA_IN_CODE => "LC_DATA_IN_CODE",
-        LC_SOURCE_VERSION => "LC_SOURCE_VERSION",
-        LC_DYLIB_CODE_SIGN_DRS => "LC_DYLIB_CODE_SIGN_DRS",
-        LC_ENCRYPTION_INFO_64 => "LC_ENCRYPTION_INFO_64",
-        LC_LINKER_OPTION => "LC_LINKER_OPTION",
-        LC_LINKER_OPTIMIZATION_HINT => "LC_LINKER_OPTIMIZATION_HINT",
-        LC_VERSION_MIN_TVOS => "LC_VERSION_MIN_TVOS",
-        LC_VERSION_MIN_WATCHOS => "LC_VERSION_MIN_WATCHOS",
-        LC_NOTE => "LC_NOTE",
-        LC_BUILD_VERSION => "LC_BUILD_VERSION",
-        _ => "",
-    };
-
-    table.add_row(row![ Fcc->"cmd", Fyc->format!("0x{:x}\n({})", cmd, cmd_string),  c->"-"]);
-    table.add_row(row![ Fcc->"cmdsize", Fyc->format!("0x{:x}", cmdsize),  c->"-"]);
-}
-
-fn print_bytes_array(bytes: &[u8], table: &mut Table) {
+fn print_segname_bytes_array(bytes: &[u8], table: &mut Table) {
     let mut result = String::from("[");
     for (index, &byte) in bytes.iter().enumerate() {
         if index % 4 == 0 && index != 0 {
@@ -428,3 +443,75 @@ fn print_segment_flags(flags_combined: u32, table: &mut Table) {
         table.add_row(row![Fcc->"flags", Fyc->format!("0x{:x}\n({})", flags_combined, format!("{}", decomposed_flags.join(" | "))), c->flags_table]);
     }
 }
+
+unsafe fn print_dylib_command(command: &DylibCommand, lc_str: &LcStr, mut table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
+    table.add_row(row![Frbc->"struct dylib = {", c->"-", c->"-"]);
+    table.add_row(row![ Fcc->"name.offset", Fyc->format!("0x{:x}", command.dylib.name.offset),  c->"-"]);
+    table.add_row(row![ Fcc->"timestamp", Fyc->format!("0x{:x}", command.dylib.timestamp),  c->"-"]);
+    table.add_row(row![ Fcc->"current_version", Fyc->format!("0x{:x}", command.dylib.current_version),  c->"-"]);
+    table.add_row(row![ Fcc->"compatibility_version", Fyc->format!("0x{:x}", command.dylib.compatibility_version),  c->"-"]);
+    table.add_row(row![Frbc->"}", c->"-", c->"-"]);
+    table.add_row(row![ Fcc->"name (lc_str)", Fyc->"-",  c->String::from_utf8(lc_str.clone()).unwrap()]);
+}
+
+fn print_lc_cmd_and_cmdsize(cmd: u32, cmdsize: u32, table: &mut Table) {
+    let cmd_string = match cmd {
+        LC_SEGMENT => "LC_SEGMENT",
+        LC_SYMTAB => "LC_SYMTAB",
+        LC_SYMSEG => "LC_SYMSEG",
+        LC_THREAD => "LC_THREAD",
+        LC_UNIXTHREAD => "LC_UNIXTHREAD",
+        LC_LOADFVMLIB => "LC_LOADFVMLIB",
+        LC_IDFVMLIB =>"LC_IDFVMLIB",
+        LC_IDENT => "LC_IDENT",
+        LC_FVMFILE => "LC_FVMFILE",
+        LC_PREPAGE => "LC_PREPAGE",
+        LC_DYSYMTAB => "LC_DYSYMTAB",
+        LC_LOAD_DYLIB => "LC_LOAD_DYLIB",
+        LC_ID_DYLIB => "LC_ID_DYLIB",
+        LC_LOAD_DYLINKER => "LC_LOAD_DYLINKER",
+        LC_ID_DYLINKER => "LC_ID_DYLINKER",
+        LC_PREBOUND_DYLIB => "LC_PREBOUND_DYLIB",
+        LC_ROUTINES => "LC_ROUTINES",
+        LC_SUB_FRAMEWORK => "LC_SUB_FRAMEWORK",
+        LC_SUB_UMBRELLA => "LC_SUB_UMBRELLA",
+        LC_SUB_CLIENT => "LC_SUB_CLIENT",
+        LC_SUB_LIBRARY => "LC_SUB_LIBRARY",
+        LC_TWOLEVEL_HINTS => "LC_TWOLEVEL_HINTS",
+        LC_PREBIND_CKSUM => "LC_PREBIND_CKSUM",
+        LC_LOAD_WEAK_DYLIB => "LC_LOAD_WEAK_DYLIB",
+        LC_SEGMENT_64 => "LC_SEGMENT_64",
+        LC_ROUTINES_64 => "LC_ROUTINES_64",
+        LC_UUID => "LC_UUID",
+        LC_RPATH => "LC_RPATH",
+        LC_CODE_SIGNATURE => "LC_CODE_SIGNATURE",
+        LC_SEGMENT_SPLIT_INFO => "LC_SEGMENT_SPLIT_INFO",
+        LC_REEXPORT_DYLIB => "LC_REEXPORT_DYLIB",
+        LC_LAZY_LOAD_DYLIB => "LC_LAZY_LOAD_DYLIB",
+        LC_ENCRYPTION_INFO => "LC_ENCRYPTION_INFO",
+        LC_DYLD_INFO => "LC_DYLD_INFO",
+        LC_DYLD_INFO_ONLY => "LC_DYLD_INFO_ONLY",
+        LC_LOAD_UPWARD_DYLIB => "LC_LOAD_UPWARD_DYLIB",
+        LC_VERSION_MIN_MACOSX => "LC_VERSION_MIN_MACOSX",
+        LC_VERSION_MIN_IPHONEOS => "LC_VERSION_MIN_IPHONEOS",
+        LC_FUNCTION_STARTS => "LC_FUNCTION_STARTS",
+        LC_DYLD_ENVIRONMENT => "LC_DYLD_ENVIRONMENT",
+        LC_MAIN => "LC_MAIN",
+        LC_DATA_IN_CODE => "LC_DATA_IN_CODE",
+        LC_SOURCE_VERSION => "LC_SOURCE_VERSION",
+        LC_DYLIB_CODE_SIGN_DRS => "LC_DYLIB_CODE_SIGN_DRS",
+        LC_ENCRYPTION_INFO_64 => "LC_ENCRYPTION_INFO_64",
+        LC_LINKER_OPTION => "LC_LINKER_OPTION",
+        LC_LINKER_OPTIMIZATION_HINT => "LC_LINKER_OPTIMIZATION_HINT",
+        LC_VERSION_MIN_TVOS => "LC_VERSION_MIN_TVOS",
+        LC_VERSION_MIN_WATCHOS => "LC_VERSION_MIN_WATCHOS",
+        LC_NOTE => "LC_NOTE",
+        LC_BUILD_VERSION => "LC_BUILD_VERSION",
+        _ => "",
+    };
+
+    table.add_row(row![ Fcc->"cmd", Fyc->format!("0x{:x}\n({})", cmd, cmd_string),  c->"-"]);
+    table.add_row(row![ Fcc->"cmdsize", Fyc->format!("0x{:x}", cmdsize),  c->"-"]);
+}
+

@@ -177,9 +177,6 @@ fn parse_load_command_string<R: Read + Seek, E: ByteOrder>(
         }
     }
 
-    // TODO: move to printer. this was just for debugging and it works! :D
-    println!("{:?}", String::from_utf8(load_command_string.clone()));
-
     Ok(load_command_string)
 }
 
