@@ -3,6 +3,7 @@ use std::io::Read;
 
 use byteorder::ReadBytesExt;
 
+#[derive(Debug)]
 pub enum MachHeader {
     MH32(MachHeader32),
     MH64(MachHeader64),
@@ -31,6 +32,7 @@ impl MachHeader {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct MachHeader32 {
     pub magic: u32,
@@ -57,6 +59,7 @@ impl MachHeader32 {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct MachHeader64 {
     pub magic: u32,

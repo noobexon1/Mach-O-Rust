@@ -32,10 +32,11 @@ struct Args {
     load_commands: bool,
 }
 
+// TODO: createt a new mod called "error.rs" which main will send errors to in order to be handled
 fn main() {
     let args = Args::parse();
     let mach_o = match File::open(&args.file.as_path()) {
-        Ok(mut file) => parser::parse(&mut file),
+        Ok(mut file) => parser::parse(&mut file).unwrap(),
         Err(e) => panic!("Error: Could not open input file for reading! {}", e),
     };
 
