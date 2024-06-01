@@ -354,7 +354,6 @@ pub struct PreboundDylibCommand {
     pub linked_modules: LcStrUnion,
 }
 
-// TODO: Think on how to deal with the fact that there are 2 lc_str in this struct...
 impl PreboundDylibCommand {
     pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> Result<LoadCommand, AppError> {
         let preboound_dylib_command = PreboundDylibCommand {
@@ -388,19 +387,52 @@ impl DylinkerCommand {
 
 #[derive(Debug)]
 #[repr(C)]
-//TODO: modify this according to the instructions here: https://opensource.apple.com/source/xnu/xnu-4903.221.2/EXTERNAL_HEADERS/mach-o/loader.h.auto.html
 pub struct ThreadCommand {
     pub cmd: u32,
     pub cmdsize: u32,
+    pub thread_states: Vec<ThreadState>,
+}
+
+#[derive(Debug)]
+pub struct ThreadState {
+    pub flavor: u32,
+    pub count: u32,
+    pub state: Vec<u8>,
 }
 
 impl ThreadCommand {
-    pub fn from_file<E: byteorder::ByteOrder>(load_command: &LoadCommandPrefix) -> Result<LoadCommand, AppError> {
-        let thread_command = ThreadCommand {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R, load_command: &LoadCommandPrefix) -> Result<LoadCommand, AppError> {
+        let mut thread_command = ThreadCommand {
             cmd: load_command.cmd,
             cmdsize: load_command.cmdsize,
+            thread_states: Vec::new(),
         };
+
+        Self::parse_thread_states::<R, E>(file, &mut thread_command)?;
+
         Ok(LoadCommand::ThreadCommand(thread_command))
+    }
+
+    fn parse_thread_states<R: Read, E: byteorder::ByteOrder>(file: &mut R, thread_command: &mut ThreadCommand) -> Result<(), AppError> {
+        let mut bytes_read = 8; // cmd and cmdsize already read
+
+        while bytes_read < thread_command.cmdsize {
+            let flavor = file.read_u32::<E>()?;
+            let count = file.read_u32::<E>()?;
+            let state_size = count * 4;
+            let mut state = vec![0u8; state_size as usize];
+            file.read_exact(&mut state)?;
+
+            thread_command.thread_states.push(ThreadState {
+                flavor,
+                count,
+                state,
+            });
+
+            bytes_read += 8 + state_size;
+        }
+
+        Ok(())
     }
 }
 

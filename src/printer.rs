@@ -188,7 +188,7 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<Vec<Section>>,
             }
             LoadCommand::PreboundDylibCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                // TODO: this is problematic because this command has 2 lc_str in it. this counters my assumption that lcstrs vector and load_commands vector will be the same size...
+                // TODO: this is problematic because this command has 2 lc_str in its LcStr struct (2 in one Vec<u8>) printing should be different.
             }
             LoadCommand::DylinkerCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);

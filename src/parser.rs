@@ -75,7 +75,7 @@ fn parse_command<R: Read, E: ByteOrder>(file: &mut R, load_command_prefix: &Load
     match load_command_prefix.cmd {
         LC_SYMTAB => SymtabCommand::from_file::<R, E>(file, load_command_prefix),
         LC_SYMSEG => SymsegCommand::from_file::<R, E>(file, load_command_prefix),
-        LC_THREAD | LC_UNIXTHREAD => ThreadCommand::from_file::<E>(load_command_prefix),
+        LC_THREAD | LC_UNIXTHREAD => ThreadCommand::from_file::<R, E>(file, load_command_prefix),
         LC_IDENT => IdentCommand::from_file::<E>(load_command_prefix),
         LC_DYSYMTAB => DynSymtabCommand::from_file::<R, E>(file, load_command_prefix),
         LC_LOAD_DYLIB | LC_ID_DYLIB | LC_LOAD_WEAK_DYLIB | LC_REEXPORT_DYLIB => DylibCommand::from_file::<R, E>(file, load_command_prefix),
