@@ -14,6 +14,8 @@ mod parser;
 mod printer;
 mod error;
 
+// TODO: add another command to print only brief of the file data (like in the beginning oof binja)
+
 /// A command-line tool written in Rust to view and explore mach-o files.
 #[derive(Parser)]
 #[command(name = "Mach_O_Rust")]
