@@ -6,6 +6,4 @@ use std::io;
 pub enum AppError {
     #[error("IO Error")]
     Io(#[from] io::Error),
-    #[error("Other Error: {0}")]
-    Other(String),
 }

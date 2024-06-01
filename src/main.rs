@@ -1,5 +1,3 @@
-#[macro_use] extern crate prettytable;
-
 use std::fs::File;
 use std::path::PathBuf;
 

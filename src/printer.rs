@@ -58,7 +58,6 @@ fn print_header_cputype(cputype: i32, table: &mut Table) {
         CPU_TYPE_NS32332 => ("CPU_TYPE_NS32332", "NS32332"),
         CPU_TYPE_MC680X0 => ("CPU_TYPE_MC680X0", "MC680X0"),
         CPU_TYPE_X86 => ("CPU_TYPE_X86", "X86"),
-        CPU_TYPE_I386 => ("CPU_TYPE_I386", "I386"),
         CPU_TYPE_X86_64 => ("CPU_TYPE_X86_64", "X86_64"),
         CPU_TYPE_MIPS => ("CPU_TYPE_MIPS", "MIPS"),
         CPU_TYPE_NS32352 => ("CPU_TYPE_NS32352", "NS32352"),
