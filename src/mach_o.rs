@@ -1,5 +1,5 @@
 use crate::header::MachHeader;
-use crate::load_commands::{LcStr, LoadCommand};
+use crate::load_commands::{LcStr, LoadCommand, Section};
 
 // TODO: make it more generic. we shoudl make a pair of (Vec<LoadCommand>, Vec<extra_memory>).
 // TODO: we encapsulte each extra_memory with its type by making and extrra_memory an enum (what to do with it?) and then we iterate and resolve! :D
@@ -10,5 +10,5 @@ use crate::load_commands::{LcStr, LoadCommand};
 
 pub struct MachO {
     pub header: MachHeader,
-    pub load_commands: (Vec<LoadCommand>, Vec<LcStr>),
+    pub load_commands: (Vec<LoadCommand>, Vec<Vec<Section>>, Vec<LcStr>),
 }

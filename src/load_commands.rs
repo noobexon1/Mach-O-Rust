@@ -168,7 +168,7 @@ pub struct Section32 {
 }
 
 impl Section32 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R) -> io::Result<Section32> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R) -> io::Result<Section> {
         let section = Section32 {
             sectname: Self::read_sectname_or_segname(file)?,
             segname: Self::read_sectname_or_segname(file)?,
@@ -182,7 +182,7 @@ impl Section32 {
             reserved1: file.read_u32::<E>()?,
             reserved2: file.read_u32::<E>()?,
         };
-        Ok(section)
+        Ok(Section::SEC32(section))
     }
 
     fn read_sectname_or_segname<R: Read>(file: &mut R) -> io::Result<[u8; 16]> {
@@ -210,7 +210,7 @@ pub struct Section64 {
 }
 
 impl Section64 {
-    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R) -> io::Result<Section64> {
+    pub fn from_file<R: Read, E: byteorder::ByteOrder>(file: &mut R) -> io::Result<Section> {
         let section = Section64 {
             sectname: Self::read_sectname_or_segname(file)?,
             segname: Self::read_sectname_or_segname(file)?,
@@ -225,7 +225,7 @@ impl Section64 {
             reserved2: file.read_u32::<E>()?,
             reserved3: file.read_u32::<E>()?,
         };
-        Ok(section)
+        Ok(Section::SEC64(section))
     }
 
     fn read_sectname_or_segname<R: Read>(file: &mut R) -> io::Result<[u8; 16]> {

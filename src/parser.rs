@@ -48,22 +48,26 @@ fn parse_header<R: Read + Seek, E: ByteOrder>(file: &mut R, magic: u32) -> io::R
     }
 }
 
-fn parse_load_commands<R: Read + Seek, E: ByteOrder>(file: &mut R, header: &MachHeader) -> io::Result<(Vec<LoadCommand>, Vec<LcStr>)> {
+fn parse_load_commands<R: Read + Seek, E: ByteOrder>(file: &mut R, header: &MachHeader) -> io::Result<(Vec<LoadCommand>, Vec<Vec<Section>>, Vec<LcStr>)> {
     let mut load_commands: Vec<LoadCommand> = Vec::new();
+    let mut sections: Vec<Vec<Section>> = Vec::new();
     let mut load_commands_strings: Vec<LcStr> = Vec::new();
 
     for _ in 0..header.ncmds() {
         let offset = get_file_offset(file)?;
         let load_command_prefix = LoadCommandPrefix::from_file::<R, E>(file)?;
         let load_command = parse_command::<R, E>(file, &load_command_prefix)?;
+        let load_command_sections = parse_sections_for_segment::<R, E>(file, &load_command)?;
         let load_command_string = parse_load_command_string::<R, E>(file, &load_command, offset, load_command_prefix.cmdsize)?;
 
         load_commands.push(load_command);
+        sections.push(load_command_sections);
         load_commands_strings.push(load_command_string);
 
+        // TODO: this one could be removed after we finish the parsing inline logic.
         advance_to_next_load_command(file, offset, load_command_prefix.cmdsize as u64)?;
     }
-    Ok((load_commands, load_commands_strings))
+    Ok((load_commands, sections, load_commands_strings))
 }
 
 fn parse_command<R: Read, E: ByteOrder>(file: &mut R, load_command_prefix: &LoadCommandPrefix) -> io::Result<LoadCommand> {
@@ -100,6 +104,30 @@ fn parse_command<R: Read, E: ByteOrder>(file: &mut R, load_command_prefix: &Load
         LC_BUILD_VERSION => BuildVersionCommand::from_file::<R, E>(file, load_command_prefix),
         _ => Err(io::Error::new(io::ErrorKind::InvalidData, "unknown load command type!"))
     }
+}
+
+fn parse_sections_for_segment<R: Read + Seek, E: ByteOrder>(file: &mut R, load_command: &LoadCommand) -> io::Result<Vec<Section>> {
+    let mut load_command_sections = Vec::new();
+    match load_command {
+        LoadCommand::SegmentCommand(command) => {
+            match command {
+                SegmentCommand::SEG32(command) => {
+                    for i in 0..command.nsects {
+                        let section = Section32::from_file::<R, E>(file)?;
+                        load_command_sections.push(section);
+                    }
+                }
+                SegmentCommand::SEG64(command) => {
+                    for i in 0..command.nsects {
+                        let section = Section64::from_file::<R, E>(file)?;
+                        load_command_sections.push(section);
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+    Ok(load_command_sections)
 }
 
 fn parse_load_command_string<R: Read + Seek, E: ByteOrder>(file: &mut R, load_command: &LoadCommand, lc_offset: u64, cmdsize: u32) -> io::Result<LcStr> {

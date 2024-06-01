@@ -2,7 +2,7 @@ use prettytable::{row, Table};
 
 use crate::constants::*;
 use crate::header::{MachHeader, MachHeader32, MachHeader64};
-use crate::load_commands::{DylibCommand, EncryptionInfoCommand, LcStr, LoadCommand, RoutinesCommand, SegmentCommand, SegmentCommand32, SegmentCommand64};
+use crate::load_commands::{DylibCommand, EncryptionInfoCommand, LcStr, LoadCommand, RoutinesCommand, Section, SegmentCommand, SegmentCommand32, SegmentCommand64};
 
 pub fn print_header(header: &MachHeader) {
     let mut table = Table::new();
@@ -149,7 +149,7 @@ fn print_header_flags(flags_combined: u32, table: &mut Table) {
     table.add_row(row![Fcc->"flags", Fyc->format!("0x{:x}\n({})", flags_combined, format!("{}", decomposed_flags.join(" | "))), c->flags_table]);
 }
 
-pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<LcStr>)) {
+pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<Vec<Section>>, Vec<LcStr>)) {
     let mut table = Table::new();
     table.add_row(row![FBbc->"Load Commands", c->"-", c->"-"]);
     table.add_row(row![Bbbc=>"Field", "Value", "Extra Info"]);
@@ -168,23 +168,23 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<LcStr>)) {
                 }
             }
             LoadCommand::DylibCommand(command) => unsafe {
-                print_dylib_command(command, &load_commands.1[index] ,&mut table);
+                print_dylib_command(command, &load_commands.2[index] ,&mut table);
             }
             LoadCommand::SubFrameWorkCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"umbrella (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
+                table.add_row(row![ Fcc->"umbrella (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
             }
             LoadCommand::SubClientCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"client (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
+                table.add_row(row![ Fcc->"client (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
             }
             LoadCommand::SubUmbrellaCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"sub_umbrella (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
+                table.add_row(row![ Fcc->"sub_umbrella (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
             }
             LoadCommand::SubLibraryCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"sub_library (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
+                table.add_row(row![ Fcc->"sub_library (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
             }
             LoadCommand::PreboundDylibCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
@@ -192,7 +192,7 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<LcStr>)) {
             }
             LoadCommand::DylinkerCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"name (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
+                table.add_row(row![ Fcc->"name (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
             }
             LoadCommand::ThreadCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
@@ -268,7 +268,7 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<LcStr>)) {
             }
             LoadCommand::RpathCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"path (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.1[index].clone()).unwrap()]);
+                table.add_row(row![ Fcc->"path (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
             }
             LoadCommand::LinkeditDataCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
