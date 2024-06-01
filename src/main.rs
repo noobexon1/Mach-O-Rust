@@ -4,6 +4,8 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use clap::Parser;
+use crate::error::AppError;
+use crate::mach_o::MachO;
 
 mod constants;
 mod header;
@@ -12,6 +14,7 @@ mod mach_o;
 mod memory_utils;
 mod parser;
 mod printer;
+mod error;
 
 /// A command-line tool written in Rust to view and explore mach-o files.
 #[derive(Parser)]
@@ -32,13 +35,19 @@ struct Args {
     load_commands: bool,
 }
 
-// TODO: createt a new mod called "error.rs" which main will send errors to in order to be handled
-fn main() {
+fn main() -> Result<(), AppError> {
     let args = Args::parse();
-    let mach_o = match File::open(&args.file.as_path()) {
-        Ok(mut file) => parser::parse(&mut file).unwrap(),
-        Err(e) => panic!("Error: Could not open input file for reading! {}", e),
-    };
+
+    if let Err(e) = run(&args) {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+
+    Ok(())
+}
+
+fn run(args: &Args) -> Result<(), AppError> {
+    let mach_o = parse_from_file(&args.file)?;
 
     if args.interactive {
         println!("Not yet implemented!");
@@ -52,4 +61,11 @@ fn main() {
         printer::print_load_commands(&mach_o.load_commands);
     }
 
+    Ok(())
+}
+
+fn parse_from_file(path: &PathBuf) -> Result<MachO, AppError> {
+    let mut file = File::open(path)?;
+    let mach_o = parser::parse(&mut file)?;
+    Ok(mach_o)
 }
