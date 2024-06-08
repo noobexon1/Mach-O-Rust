@@ -65,13 +65,12 @@ fn parse_load_commands<R: Read + Seek, E: ByteOrder>(file: &mut R, header: &Mach
         sections.push(load_command_sections);
         load_commands_strings.push(load_command_string);
 
-        // TODO: this one could be removed after we finish the parsing inline logic.
         advance_to_next_load_command(file, offset, load_command_prefix.cmdsize as u64)?;
     }
     Ok((load_commands, sections, load_commands_strings))
 }
 
-// TODO: Handle all of the warnings emitted from building. I need to sub-parse some commands...
+// TODO: Sub-parse remaining commands as seen on warning after build...
 fn parse_command<R: Read, E: ByteOrder>(file: &mut R, load_command_prefix: &LoadCommandPrefix) ->Result<LoadCommand, AppError> {
     match load_command_prefix.cmd {
         LC_SYMTAB => SymtabCommand::from_file::<R, E>(file, load_command_prefix),
@@ -108,8 +107,6 @@ fn parse_command<R: Read, E: ByteOrder>(file: &mut R, load_command_prefix: &Load
     }
 }
 
-
-// TODO: make sure this works as intentional by printing it in printer.rs or by debug...
 fn parse_sections_for_segment<R: Read + Seek, E: ByteOrder>(file: &mut R, load_command: &LoadCommand) -> Result<Vec<Section>, AppError> {
     let mut load_command_sections = Vec::new();
     match load_command {

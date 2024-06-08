@@ -352,7 +352,7 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<Vec<Section>>,
 
 fn print_segment_command32(command: &SegmentCommand32, table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
-    print_segname_bytes_array(&command.segname, table);
+    print_segname_or_sectname_bytes_array(&command.segname, table);
     table.add_row(row![ Fcc->"vmaddr", Fyc->format!("0x{:x}", command.vmaddr),  c->"-"]);
     table.add_row(row![ Fcc->"vmsize", Fyc->format!("0x{:x}", command.vmsize),  c->"-"]);
     table.add_row(row![ Fcc->"fileoff", Fyc->format!("0x{:x}", command.fileoff),  c->"-"]);
@@ -365,7 +365,7 @@ fn print_segment_command32(command: &SegmentCommand32, table: &mut Table) {
 
 fn print_segment_command64(command: &SegmentCommand64, table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
-    print_segname_bytes_array(&command.segname, table);
+    print_segname_or_sectname_bytes_array(&command.segname, table);
     table.add_row(row![ Fcc->"vmaddr", Fyc->format!("0x{:x}", command.vmaddr),  c->"-"]);
     table.add_row(row![ Fcc->"vmsize", Fyc->format!("0x{:x}", command.vmsize),  c->"-"]);
     table.add_row(row![ Fcc->"fileoff", Fyc->format!("0x{:x}", command.fileoff),  c->"-"]);
@@ -376,7 +376,7 @@ fn print_segment_command64(command: &SegmentCommand64, table: &mut Table) {
     print_segment_flags(command.flags, table);
 }
 
-fn print_segname_bytes_array(bytes: &[u8], table: &mut Table) {
+fn print_segname_or_sectname_bytes_array(bytes: &[u8], table: &mut Table) {
     let mut result = String::from("[");
     for (index, &byte) in bytes.iter().enumerate() {
         if index % 4 == 0 && index != 0 {
@@ -455,8 +455,8 @@ fn print_sections_for_segment(sections: &Vec<Section>, table: &mut Table) {
 }
 
 fn print_section32(section: &Section32, table: &mut Table) {
-    print_segname_bytes_array(&section.sectname, table);
-    print_segname_bytes_array(&section.segname, table);
+    print_segname_or_sectname_bytes_array(&section.sectname, table);
+    print_segname_or_sectname_bytes_array(&section.segname, table);
     table.add_row(row![ Fcc->"addr", Fyc->format!("0x{:x}", section.addr),  c->"-"]);
     table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", section.size),  c->"-"]);
     table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", section.offset),  c->"-"]);
@@ -469,8 +469,8 @@ fn print_section32(section: &Section32, table: &mut Table) {
 }
 
 fn print_section64(section: &Section64, table: &mut Table) {
-    print_segname_bytes_array(&section.sectname, table);
-    print_segname_bytes_array(&section.segname, table);
+    print_segname_or_sectname_bytes_array(&section.sectname, table);
+    print_segname_or_sectname_bytes_array(&section.segname, table);
     table.add_row(row![ Fcc->"addr", Fyc->format!("0x{:x}", section.addr),  c->"-"]);
     table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", section.size),  c->"-"]);
     table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", section.offset),  c->"-"]);
