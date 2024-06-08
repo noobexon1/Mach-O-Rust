@@ -2,7 +2,7 @@ use prettytable::{row, Table};
 
 use crate::constants::*;
 use crate::header::{MachHeader, MachHeader32, MachHeader64};
-use crate::load_commands::{DylibCommand, EncryptionInfoCommand, LcStr, LoadCommand, RoutinesCommand, Section, SegmentCommand, SegmentCommand32, SegmentCommand64};
+use crate::load_commands::{DylibCommand, EncryptionInfoCommand, LcStr, LoadCommand, RoutinesCommand, Section, Section32, Section64, SegmentCommand, SegmentCommand32, SegmentCommand64};
 
 pub fn print_header(header: &MachHeader) {
     let mut table = Table::new();
@@ -165,6 +165,7 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<Vec<Section>>,
                         print_segment_command64(command, &mut table);
                     }
                 }
+                print_sections_for_segment(&load_commands.1[index], &mut table);
             }
             LoadCommand::DylibCommand(command) => unsafe {
                 print_dylib_command(command, &load_commands.2[index] ,&mut table);
@@ -441,6 +442,45 @@ fn print_segment_flags(flags_combined: u32, table: &mut Table) {
     } else {
         table.add_row(row![Fcc->"flags", Fyc->format!("0x{:x}\n({})", flags_combined, format!("{}", decomposed_flags.join(" | "))), c->flags_table]);
     }
+}
+
+fn print_sections_for_segment(sections: &Vec<Section>, table: &mut Table) {
+    for (index, section) in sections.iter().enumerate() {
+        table.add_row(row![Fgbc->format!("Section #{}", index), c->"-", c->"-"]);
+        match section {
+            Section::SEC32(section32) => print_section32(section32, table),
+            Section::SEC64(section64) => print_section64(section64, table),
+        }
+    }
+}
+
+fn print_section32(section: &Section32, table: &mut Table) {
+    print_segname_bytes_array(&section.sectname, table);
+    print_segname_bytes_array(&section.segname, table);
+    table.add_row(row![ Fcc->"addr", Fyc->format!("0x{:x}", section.addr),  c->"-"]);
+    table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", section.size),  c->"-"]);
+    table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", section.offset),  c->"-"]);
+    table.add_row(row![ Fcc->"align", Fyc->format!("0x{:x}", section.align),  c->"-"]);
+    table.add_row(row![ Fcc->"reloff", Fyc->format!("0x{:x}", section.reloff),  c->"-"]);
+    table.add_row(row![ Fcc->"nreloc", Fyc->format!("0x{:x}", section.nreloc),  c->"-"]);
+    table.add_row(row![ Fcc->"flags", Fyc->format!("0x{:x}", section.flags),  c->"-"]);
+    table.add_row(row![ Fcc->"reserved1", Fyc->format!("0x{:x}", section.reserved1),  c->"-"]);
+    table.add_row(row![ Fcc->"reserved2", Fyc->format!("0x{:x}", section.reserved2),  c->"-"]);
+}
+
+fn print_section64(section: &Section64, table: &mut Table) {
+    print_segname_bytes_array(&section.sectname, table);
+    print_segname_bytes_array(&section.segname, table);
+    table.add_row(row![ Fcc->"addr", Fyc->format!("0x{:x}", section.addr),  c->"-"]);
+    table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", section.size),  c->"-"]);
+    table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", section.offset),  c->"-"]);
+    table.add_row(row![ Fcc->"align", Fyc->format!("0x{:x}", section.align),  c->"-"]);
+    table.add_row(row![ Fcc->"reloff", Fyc->format!("0x{:x}", section.reloff),  c->"-"]);
+    table.add_row(row![ Fcc->"nreloc", Fyc->format!("0x{:x}", section.nreloc),  c->"-"]);
+    table.add_row(row![ Fcc->"flags", Fyc->format!("0x{:x}", section.flags),  c->"-"]);
+    table.add_row(row![ Fcc->"reserved1", Fyc->format!("0x{:x}", section.reserved1),  c->"-"]);
+    table.add_row(row![ Fcc->"reserved2", Fyc->format!("0x{:x}", section.reserved2),  c->"-"]);
+    table.add_row(row![ Fcc->"reserved3", Fyc->format!("0x{:x}", section.reserved3),  c->"-"]);
 }
 
 unsafe fn print_dylib_command(command: &DylibCommand, lc_str: &LcStr, mut table: &mut Table) {
