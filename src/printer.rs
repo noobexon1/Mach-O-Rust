@@ -1,8 +1,8 @@
 use prettytable::{row, Table};
 
 use crate::constants::*;
-use crate::header::{MachHeader, MachHeader32, MachHeader64};
-use crate::load_commands::{BuildVersionCommand, DyldInfoCommand, DylibCommand, DynSymtabCommand, EncryptionInfoCommand, EncryptionInfoCommand32, EncryptionInfoCommand64, EntryPointCommand, LcStr, LinkeditDataCommand, LinkerOptionCommand, LoadCommand, NoteCommand, PrebindCksumCommand, PreboundDylibCommand, RoutinesCommand, RoutinesCommand32, RoutinesCommand64, Section, Section32, Section64, SegmentCommand, SegmentCommand32, SegmentCommand64, SourceVersionCommand, SymsegCommand, SymtabCommand, ThreadCommand, TwoLevelHintsCommand, UuidCommand, VersionMinCommand};
+use crate::header::*;
+use crate::load_commands::*;
 
 pub fn print_header(header: &MachHeader) {
     let mut table = Table::new();
@@ -320,12 +320,23 @@ fn print_common_lcstr(cmd: u32, cmdsize: u32, lc_str_name: &str, lc_str: String,
 
 fn print_prebound_dylib_command(command: &PreboundDylibCommand, table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"nmodules", Fyc->format!("0x{:x}", command.nmodules),  c->"-"]);
+
     // TODO: this is problematic because this command has 2 lc_str in its LcStr struct (2 in one Vec<u8>) printing should be different.
 }
 
 fn print_thread_command(command: &ThreadCommand, table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
-    // TODO: implement this after we manage to make it work in parser.rs as well.
+    for (index, thread_state) in command.thread_states.iter().enumerate() {
+        table.add_row(row![Fgbc->format!("Thread State #{}", index), c->"-", c->"-"]);
+        print_thread_state(thread_state, table);
+    }
+}
+
+fn print_thread_state(thread_state: &ThreadState, table: &mut Table) {
+    table.add_row(row![Fcc->"flavor", Fyc->format!("0x{:x}", thread_state.flavor), c->"-"]);
+    table.add_row(row![Fcc->"count", Fyc->format!("0x{:x}", thread_state.count), c->"-"]);
+    print_bytes_array("state", &thread_state.state, table);
 }
 
 fn print_routines_command_32(command: &RoutinesCommand32, table: &mut Table) {
