@@ -472,7 +472,7 @@ fn print_source_version_command(command: &SourceVersionCommand, table: &mut Tabl
 
 fn print_note_command(command: &NoteCommand, table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
-    //TODO: print as bytes...
+    print_bytes_array("data_owner", &command.data_owner, table);
     table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", command.offset),  c->"-"]);
     table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", command.size),  c->"-"]);
 }
