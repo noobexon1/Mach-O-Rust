@@ -27,8 +27,7 @@ fn print_common_header_fields(magic: u32, cputype: i32, cpusubtype: i32, filetyp
     print_header_cputype(cputype, table);
     print_header_cpusubtype(cpusubtype, table);
     print_header_filetype(filetype, table);
-    table.add_row(row![ Fcc->"ncmds", Fyc->format!("0x{:x}", ncmds),  c->"-"]);
-    table.add_row(row![ Fcc->"sizeofcmds", Fyc->format!("0x{:x}", sizeofcmds),  c->"-"]);
+    print_ncmds_and_sizeofcmds(ncmds, sizeofcmds, table);
     print_header_flags(flags, table);
     if let Some(r) = reserved {
         table.add_row(row![ Fcc->"reserved", Fyc->format!("0x{:x}",r), c->"-"]);
@@ -100,6 +99,11 @@ fn print_header_filetype(filetype: u32, table: &mut Table) {
         _ => ("", "Unrecogninzed filetype!"),
     };
     table.add_row(row![ Fcc->"filetype", Fyc->format!("0x{:x}\n({})", filetype, filetype_string),  c->info]);
+}
+
+fn print_ncmds_and_sizeofcmds(ncmds: u32, sizeofcmds: u32, table: &mut Table) {
+    table.add_row(row![ Fcc->"ncmds", Fyc->format!("0x{:x}", ncmds),  c->"-"]);
+    table.add_row(row![ Fcc->"sizeofcmds", Fyc->format!("0x{:x}", sizeofcmds),  c->"-"]);
 }
 
 fn print_header_flags(flags_combined: u32, table: &mut Table) {
@@ -208,7 +212,7 @@ fn print_segment_command64(command: &SegmentCommand64, table: &mut Table) {
 
 fn print_common_segment_fields(cmd: u32, cmdsize: u32, segname: &[u8], vmaddr: u64, vmsize: u64, fileoff: u64, filesize: u64, nsects: u32, maxprot: i32, initprot: i32,flags: u32, table: &mut Table) {
     print_lc_cmd_and_cmdsize(cmd, cmdsize, table);
-    print_segname_or_sectname_bytes_array(segname, table);
+    print_bytes_array("segname", segname, table);
     table.add_row(row![Fcc->"vmaddr", Fyc->format!("0x{:x}", vmaddr), c->"-"]);
     table.add_row(row![Fcc->"vmsize", Fyc->format!("0x{:x}", vmsize), c->"-"]);
     table.add_row(row![Fcc->"fileoff", Fyc->format!("0x{:x}", fileoff), c->"-"]);
@@ -217,22 +221,6 @@ fn print_common_segment_fields(cmd: u32, cmdsize: u32, segname: &[u8], vmaddr: u
     print_segment_maxprot_or_initprot(initprot, table);
     table.add_row(row![Fcc->"nsects", Fyc->format!("0x{:x}", nsects), c->"-"]);
     print_segment_flags(flags, table);
-}
-
-fn print_segname_or_sectname_bytes_array(bytes: &[u8], table: &mut Table) {
-    let mut result = String::from("[");
-    for (index, &byte) in bytes.iter().enumerate() {
-        if index % 4 == 0 && index != 0 {
-            result.push_str("\n ");
-        }
-        result.push_str(&format!("0x{:02X}", byte));
-        if index < bytes.len() - 1 {
-            result.push_str(", ");
-        }
-    }
-    result.push(']');
-    let as_string =  String::from_utf8(bytes.to_vec()).unwrap();
-    table.add_row(row![ Fcc->"segname", Fyc->format!("{}", result),  c->as_string]);
 }
 
 fn print_segment_maxprot_or_initprot(prot: i32, table: &mut Table) {
@@ -298,8 +286,8 @@ fn print_section64(section: &Section64, table: &mut Table) {
 }
 
 fn print_common_section_fields(sectname: &[u8], segname: &[u8], addr: u64, size: u64, offset: u32, align: u32, reloff: u32, nreloc: u32, flags: u32, reserved1: u32, reserved2: u32, reserved3: Option<u32>, table: &mut Table) {
-    print_segname_or_sectname_bytes_array(sectname, table);
-    print_segname_or_sectname_bytes_array(segname, table);
+    print_bytes_array("sectname", sectname, table);
+    print_bytes_array("segname", segname, table);
     table.add_row(row![Fcc->"addr", Fyc->format!("0x{:x}", addr), c->"-"]);
     table.add_row(row![Fcc->"size", Fyc->format!("0x{:x}", size), c->"-"]);
     table.add_row(row![Fcc->"offset", Fyc->format!("0x{:x}", offset), c->"-"]);
@@ -403,7 +391,7 @@ fn print_prebind_cksum_command(command: &PrebindCksumCommand, table: &mut Table)
 
 fn print_uuid_command(command: &UuidCommand, table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
-    //TODO print as bytes...
+    print_bytes_array("uuid", &command.uuid, table);
 }
 
 fn print_linkedit_data_command(command: &LinkeditDataCommand, table: &mut Table) {
@@ -547,7 +535,22 @@ fn print_lc_cmd_and_cmdsize(cmd: u32, cmdsize: u32, table: &mut Table) {
         LC_BUILD_VERSION => "LC_BUILD_VERSION",
         _ => "",
     };
-
     table.add_row(row![ Fcc->"cmd", Fyc->format!("0x{:x}\n({})", cmd, cmd_string),  c->"-"]);
     table.add_row(row![ Fcc->"cmdsize", Fyc->format!("0x{:x}", cmdsize),  c->"-"]);
+}
+
+fn print_bytes_array(field: &str, bytes: &[u8], table: &mut Table) {
+    let mut result = String::from("[");
+    for (index, &byte) in bytes.iter().enumerate() {
+        if index % 4 == 0 && index != 0 {
+            result.push_str("\n ");
+        }
+        result.push_str(&format!("0x{:02X}", byte));
+        if index < bytes.len() - 1 {
+            result.push_str(", ");
+        }
+    }
+    result.push(']');
+    let as_string = String::from_utf8(bytes.to_vec()).unwrap_or_else(|_| String::from("-"));
+    table.add_row(row![ Fcc->format!("{}", field), Fyc->format!("{}", result),  c->as_string]);
 }
