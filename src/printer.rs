@@ -313,16 +313,17 @@ unsafe fn print_dylib_command(command: &DylibCommand, lc_str: String, mut table:
     table.add_row(row![ Fcc->"name (lc_str)", Fyc->"-",  c->lc_str]);
 }
 
-fn print_common_lcstr(cmd: u32, cmdsize: u32, lc_str_name: &str, lc_str: String, table: &mut Table) {
-    print_lc_cmd_and_cmdsize(cmd, cmdsize, table);
-    table.add_row(row![ Fcc->format!("{} (lc_str)", lc_str_name), Fyc->"-",  c->lc_str]);
-}
-
 fn print_prebound_dylib_command(command: &PreboundDylibCommand, table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
     table.add_row(row![ Fcc->"nmodules", Fyc->format!("0x{:x}", command.nmodules),  c->"-"]);
-
-    // TODO: this is problematic because this command has 2 lc_str in its LcStr struct (2 in one Vec<u8>) printing should be different.
+    /*
+    the Vec<LcStr> here has 2 parts:
+        1) the path to the library.
+        2) a bit vector with size of nmodules to indicate if bound or not.
+    to print this calculate the remaining size and then print (remaining_size - nmodules) to get part (1).
+    then preint the rest as bit vector.
+    */
+    // TODO: implement according to comment above...
 }
 
 fn print_thread_command(command: &ThreadCommand, table: &mut Table) {
@@ -548,6 +549,11 @@ fn print_lc_cmd_and_cmdsize(cmd: u32, cmdsize: u32, table: &mut Table) {
     };
     table.add_row(row![ Fcc->"cmd", Fyc->format!("0x{:x}\n({})", cmd, cmd_string),  c->"-"]);
     table.add_row(row![ Fcc->"cmdsize", Fyc->format!("0x{:x}", cmdsize),  c->"-"]);
+}
+
+fn print_common_lcstr(cmd: u32, cmdsize: u32, lc_str_name: &str, lc_str: String, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(cmd, cmdsize, table);
+    table.add_row(row![ Fcc->format!("{} (lc_str)", lc_str_name), Fyc->"-",  c->lc_str]);
 }
 
 fn print_bytes_array(field: &str, bytes: &[u8], table: &mut Table) {
