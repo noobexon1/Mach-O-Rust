@@ -2,7 +2,7 @@ use prettytable::{row, Table};
 
 use crate::constants::*;
 use crate::header::{MachHeader, MachHeader32, MachHeader64};
-use crate::load_commands::{DylibCommand, DynSymtabCommand, EncryptionInfoCommand, LcStr, LoadCommand, PrebindCksumCommand, RoutinesCommand, RoutinesCommand32, RoutinesCommand64, Section, Section32, Section64, SegmentCommand, SegmentCommand32, SegmentCommand64, SymtabCommand, TwoLevelHintsCommand};
+use crate::load_commands::{BuildVersionCommand, DyldInfoCommand, DylibCommand, DynSymtabCommand, EncryptionInfoCommand, EncryptionInfoCommand32, EncryptionInfoCommand64, EntryPointCommand, LcStr, LinkeditDataCommand, LinkerOptionCommand, LoadCommand, NoteCommand, PrebindCksumCommand, PreboundDylibCommand, RoutinesCommand, RoutinesCommand32, RoutinesCommand64, Section, Section32, Section64, SegmentCommand, SegmentCommand32, SegmentCommand64, SourceVersionCommand, SymsegCommand, SymtabCommand, ThreadCommand, TwoLevelHintsCommand, UuidCommand, VersionMinCommand};
 
 pub fn print_header(header: &MachHeader) {
     let mut table = Table::new();
@@ -161,15 +161,9 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<Vec<Section>>,
             LoadCommand::SubClientCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "client", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
             LoadCommand::SubUmbrellaCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "sub_umbrella", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
             LoadCommand::SubLibraryCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "sub_library", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
-            LoadCommand::PreboundDylibCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                // TODO: this is problematic because this command has 2 lc_str in its LcStr struct (2 in one Vec<u8>) printing should be different.
-            }
+            LoadCommand::PreboundDylibCommand(command) => print_prebound_dylib_command(command, &mut table),
             LoadCommand::DylinkerCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "name", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
-            LoadCommand::ThreadCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                // TODO: implement this after we manage to make it work in parser.rs as well.
-            }
+            LoadCommand::ThreadCommand(command) => print_thread_command(command, &mut table),
             LoadCommand::RoutinesCommand(command) => {
                 match command {
                     RoutinesCommand::RTN32(command) => print_routines_command_32(command, &mut table),
@@ -180,83 +174,24 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<Vec<Section>>,
             LoadCommand::DynSymtabCommand(command) => print_dynsymtab_command(command, &mut table),
             LoadCommand::TwoLevelHintsCommand(command) => print_two_level_hints_command(command, &mut table),
             LoadCommand::PrebindCksumCommand(command) => print_prebind_cksum_command(command, &mut table),
-            LoadCommand::UuidCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                //TODO print as bytes...
-            }
+            LoadCommand::UuidCommand(command) => print_uuid_command(command, &mut table),
             LoadCommand::RpathCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "path", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
-            LoadCommand::LinkeditDataCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"dataoff", Fyc->format!("0x{:x}", command.dataoff),  c->"-"]);
-                table.add_row(row![ Fcc->"datasize", Fyc->format!("0x{:x}", command.datasize),  c->"-"]);
-            }
+            LoadCommand::LinkeditDataCommand(command) => print_linkedit_data_command(command, &mut table),
             LoadCommand::EncryptionInfoCommand(command) => {
                 match command {
-                    EncryptionInfoCommand::ENI32(command) => {
-                        print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                        table.add_row(row![ Fcc->"cryptoff", Fyc->format!("0x{:x}", command.cryptoff),  c->"-"]);
-                        table.add_row(row![ Fcc->"cryptsize", Fyc->format!("0x{:x}", command.cryptsize),  c->"-"]);
-                        table.add_row(row![ Fcc->"cryptid", Fyc->format!("0x{:x}", command.cryptid),  c->"-"]);
-                    }
-                    EncryptionInfoCommand::ENI64(command) => {
-                        print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                        table.add_row(row![ Fcc->"cryptoff", Fyc->format!("0x{:x}", command.cryptoff),  c->"-"]);
-                        table.add_row(row![ Fcc->"cryptsize", Fyc->format!("0x{:x}", command.cryptsize),  c->"-"]);
-                        table.add_row(row![ Fcc->"cryptid", Fyc->format!("0x{:x}", command.cryptid),  c->"-"]);
-                        table.add_row(row![ Fcc->"pad", Fyc->format!("0x{:x}", command.pad),  c->"-"]);
-                    }
+                    EncryptionInfoCommand::ENI32(command) => print_encryption_info_command_32(command, &mut table),
+                    EncryptionInfoCommand::ENI64(command) => print_encryption_info_command_64(command, &mut table),
                 }
             }
-            LoadCommand::VersionMinCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"version", Fyc->format!("0x{:x}", command.version),  c->"-"]);
-                table.add_row(row![ Fcc->"sdk", Fyc->format!("0x{:x}", command.sdk),  c->"-"]);
-            }
-            LoadCommand::BuildVersionCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"platform", Fyc->format!("0x{:x}", command.platform),  c->"-"]);
-                table.add_row(row![ Fcc->"minos", Fyc->format!("0x{:x}", command.minos),  c->"-"]);
-                table.add_row(row![ Fcc->"sdk", Fyc->format!("0x{:x}", command.sdk),  c->"-"]);
-                table.add_row(row![ Fcc->"ntools", Fyc->format!("0x{:x}", command.ntools),  c->"-"]);
-            }
-            LoadCommand::DyldInfoCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"rebase_off", Fyc->format!("0x{:x}", command.rebase_off),  c->"-"]);
-                table.add_row(row![ Fcc->"rebase_size", Fyc->format!("0x{:x}", command.rebase_size),  c->"-"]);
-                table.add_row(row![ Fcc->"bind_off", Fyc->format!("0x{:x}", command.bind_off),  c->"-"]);
-                table.add_row(row![ Fcc->"bind_size", Fyc->format!("0x{:x}", command.bind_size),  c->"-"]);
-                table.add_row(row![ Fcc->"weak_bind_off", Fyc->format!("0x{:x}", command.weak_bind_off),  c->"-"]);
-                table.add_row(row![ Fcc->"weak_bind_size", Fyc->format!("0x{:x}", command.weak_bind_size),  c->"-"]);
-                table.add_row(row![ Fcc->"lazy_bind_off", Fyc->format!("0x{:x}", command.lazy_bind_off),  c->"-"]);
-                table.add_row(row![ Fcc->"lazy_bind_size", Fyc->format!("0x{:x}", command.lazy_bind_size),  c->"-"]);
-                table.add_row(row![ Fcc->"export_off", Fyc->format!("0x{:x}", command.export_off),  c->"-"]);
-                table.add_row(row![ Fcc->"export_size", Fyc->format!("0x{:x}", command.export_size),  c->"-"]);
-            }
-            LoadCommand::LinkerOptionCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"count", Fyc->format!("0x{:x}", command.count),  c->"-"]);
-            }
-            LoadCommand::SymsegCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", command.offset),  c->"-"]);
-                table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", command.size),  c->"-"]);
-            }
+            LoadCommand::VersionMinCommand(command) => print_version_min_command(command, &mut table),
+            LoadCommand::BuildVersionCommand(command) => print_build_version_command(command, &mut table),
+            LoadCommand::DyldInfoCommand(command) => print_dyld_info_command(command, &mut table),
+            LoadCommand::LinkerOptionCommand(command) => print_linker_options_command(command, &mut table),
+            LoadCommand::SymsegCommand(command) => print_symseg_command(command, &mut table),
             LoadCommand::IdentCommand(command) => print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table),
-            LoadCommand::EntryPointCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"entryoff", Fyc->format!("0x{:x}", command.entryoff),  c->"-"]);
-                table.add_row(row![ Fcc->"stacksize", Fyc->format!("0x{:x}", command.stacksize),  c->"-"]);
-            }
-            LoadCommand::SourceVersionCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"version", Fyc->format!("0x{:x}", command.version),  c->"-"]);
-            }
-            LoadCommand::NoteCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                //TODO: print as bytes...
-                table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", command.offset),  c->"-"]);
-                table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", command.size),  c->"-"]);
-            }
+            LoadCommand::EntryPointCommand(command) => print_entry_point_command(command, &mut table),
+            LoadCommand::SourceVersionCommand(command) => print_source_version_command(command, &mut table),
+            LoadCommand::NoteCommand(command) => print_note_command(command, &mut table),
         }
         table.add_row(row![c=>"-", "-", "-"]);
     }
@@ -395,6 +330,16 @@ fn print_common_lcstr(cmd: u32, cmdsize: u32, lc_str_name: &str, lc_str: String,
     table.add_row(row![ Fcc->format!("{} (lc_str)", lc_str_name), Fyc->"-",  c->lc_str]);
 }
 
+fn print_prebound_dylib_command(command: &PreboundDylibCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    // TODO: this is problematic because this command has 2 lc_str in its LcStr struct (2 in one Vec<u8>) printing should be different.
+}
+
+fn print_thread_command(command: &ThreadCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    // TODO: implement this after we manage to make it work in parser.rs as well.
+}
+
 fn print_routines_command_32(command: &RoutinesCommand32, table: &mut Table) {
     print_common_routines_fields(command.cmd, command.cmdsize, command.init_address as u64, command.init_module as u64, command.reserved1 as u64, command.reserved2 as u64, command.reserved3 as u64, command.reserved4 as u64, command.reserved5 as u64, command.reserved6 as u64, table);
 }
@@ -454,6 +399,92 @@ fn print_two_level_hints_command(command: &TwoLevelHintsCommand, table: &mut Tab
 fn print_prebind_cksum_command(command: &PrebindCksumCommand, table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
     table.add_row(row![ Fcc->"cksum", Fyc->format!("0x{:x}", command.cksum),  c->"-"]);
+}
+
+fn print_uuid_command(command: &UuidCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    //TODO print as bytes...
+}
+
+fn print_linkedit_data_command(command: &LinkeditDataCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"dataoff", Fyc->format!("0x{:x}", command.dataoff),  c->"-"]);
+    table.add_row(row![ Fcc->"datasize", Fyc->format!("0x{:x}", command.datasize),  c->"-"]);
+}
+
+fn print_encryption_info_command_32(command: &EncryptionInfoCommand32, table: &mut Table) {
+    print_common_encryption_info_fields(command.cmd, command.cmdsize, command.cryptoff, command.cryptsize, command.cryptid, None, table);
+}
+
+fn print_encryption_info_command_64(command: &EncryptionInfoCommand64, table: &mut Table) {
+    print_common_encryption_info_fields(command.cmd, command.cmdsize, command.cryptoff, command.cryptsize, command.cryptid, Some(command.pad), table);
+}
+
+fn print_version_min_command(command: &VersionMinCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"version", Fyc->format!("0x{:x}", command.version),  c->"-"]);
+    table.add_row(row![ Fcc->"sdk", Fyc->format!("0x{:x}", command.sdk),  c->"-"]);
+}
+
+fn print_build_version_command(command: &BuildVersionCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"platform", Fyc->format!("0x{:x}", command.platform),  c->"-"]);
+    table.add_row(row![ Fcc->"minos", Fyc->format!("0x{:x}", command.minos),  c->"-"]);
+    table.add_row(row![ Fcc->"sdk", Fyc->format!("0x{:x}", command.sdk),  c->"-"]);
+    table.add_row(row![ Fcc->"ntools", Fyc->format!("0x{:x}", command.ntools),  c->"-"]);
+}
+
+fn print_dyld_info_command(command: &DyldInfoCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"rebase_off", Fyc->format!("0x{:x}", command.rebase_off),  c->"-"]);
+    table.add_row(row![ Fcc->"rebase_size", Fyc->format!("0x{:x}", command.rebase_size),  c->"-"]);
+    table.add_row(row![ Fcc->"bind_off", Fyc->format!("0x{:x}", command.bind_off),  c->"-"]);
+    table.add_row(row![ Fcc->"bind_size", Fyc->format!("0x{:x}", command.bind_size),  c->"-"]);
+    table.add_row(row![ Fcc->"weak_bind_off", Fyc->format!("0x{:x}", command.weak_bind_off),  c->"-"]);
+    table.add_row(row![ Fcc->"weak_bind_size", Fyc->format!("0x{:x}", command.weak_bind_size),  c->"-"]);
+    table.add_row(row![ Fcc->"lazy_bind_off", Fyc->format!("0x{:x}", command.lazy_bind_off),  c->"-"]);
+    table.add_row(row![ Fcc->"lazy_bind_size", Fyc->format!("0x{:x}", command.lazy_bind_size),  c->"-"]);
+    table.add_row(row![ Fcc->"export_off", Fyc->format!("0x{:x}", command.export_off),  c->"-"]);
+    table.add_row(row![ Fcc->"export_size", Fyc->format!("0x{:x}", command.export_size),  c->"-"]);
+}
+
+fn print_linker_options_command(command: &LinkerOptionCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"count", Fyc->format!("0x{:x}", command.count),  c->"-"]);
+}
+
+fn print_symseg_command(command: &SymsegCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", command.offset),  c->"-"]);
+    table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", command.size),  c->"-"]);
+}
+
+fn print_entry_point_command(command: &EntryPointCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"entryoff", Fyc->format!("0x{:x}", command.entryoff),  c->"-"]);
+    table.add_row(row![ Fcc->"stacksize", Fyc->format!("0x{:x}", command.stacksize),  c->"-"]);
+}
+
+fn print_source_version_command(command: &SourceVersionCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"version", Fyc->format!("0x{:x}", command.version),  c->"-"]);
+}
+
+fn print_note_command(command: &NoteCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    //TODO: print as bytes...
+    table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", command.offset),  c->"-"]);
+    table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", command.size),  c->"-"]);
+}
+
+fn print_common_encryption_info_fields(cmd: u32, cmdsize: u32, cryptoff: u32, cryptsize: u32, cryptid: u32, pad: Option<u32>, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(cmd, cmdsize, table);
+    table.add_row(row![Fcc->"cryptoff", Fyc->format!("0x{:x}", cryptoff), c->"-"]);
+    table.add_row(row![Fcc->"cryptsize", Fyc->format!("0x{:x}", cryptsize), c->"-"]);
+    table.add_row(row![Fcc->"cryptid", Fyc->format!("0x{:x}", cryptid), c->"-"]);
+    if let Some(p) = pad {
+        table.add_row(row![Fcc->"pad", Fyc->format!("0x{:x}", p), c->"-"]);
+    }
 }
 
 fn print_common_title(title: &str, table: &mut Table) {
