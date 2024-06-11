@@ -2,40 +2,37 @@ use prettytable::{row, Table};
 
 use crate::constants::*;
 use crate::header::{MachHeader, MachHeader32, MachHeader64};
-use crate::load_commands::{DylibCommand, EncryptionInfoCommand, LcStr, LoadCommand, RoutinesCommand, Section, Section32, Section64, SegmentCommand, SegmentCommand32, SegmentCommand64};
+use crate::load_commands::{DylibCommand, DynSymtabCommand, EncryptionInfoCommand, LcStr, LoadCommand, PrebindCksumCommand, RoutinesCommand, RoutinesCommand32, RoutinesCommand64, Section, Section32, Section64, SegmentCommand, SegmentCommand32, SegmentCommand64, SymtabCommand, TwoLevelHintsCommand};
 
 pub fn print_header(header: &MachHeader) {
     let mut table = Table::new();
-    table.add_row(row![FBbc->"Header", c->"-", c->"-"]);
-    table.add_row(row![Bbbc=>"Field", "Value", "Extra Info"]);
-
+    print_common_title("Header", &mut table);
     match header {
         MachHeader::MH32(header) => print_header_32(header, &mut table),
         MachHeader::MH64(header) => print_header_64(header, &mut table),
     }
-
     table.printstd();
 }
 
 fn print_header_32(header: &MachHeader32, table: &mut Table) {
-    print_header_magic(header.magic, table);
-    print_header_cputype(header.cputype, table);
-    print_header_cpusubtype(header.cpusubtype, table);
-    print_header_filetype(header.filetype, table);
-    table.add_row(row![ Fcc->"ncmds", Fyc->format!("0x{:x}", header.ncmds),  c->"-"]);
-    table.add_row(row![ Fcc->"sizeofcmds", Fyc->format!("0x{:x}", header.sizeofcmds),  c->"-"]);
-    print_header_flags(header.flags, table);
+    print_common_header_fields(header.magic, header.cputype, header.cpusubtype, header.filetype, header.ncmds, header.sizeofcmds, header.flags, None, table);
 }
 
 fn print_header_64(header: &MachHeader64, table: &mut Table) {
-    print_header_magic(header.magic, table);
-    print_header_cputype(header.cputype, table);
-    print_header_cpusubtype(header.cpusubtype, table);
-    print_header_filetype(header.filetype, table);
-    table.add_row(row![ Fcc->"ncmds", Fyc->format!("0x{:x}", header.ncmds),  c->"-"]);
-    table.add_row(row![ Fcc->"sizeofcmds", Fyc->format!("0x{:x}", header.sizeofcmds),  c->"-"]);
-    print_header_flags(header.flags, table);
-    table.add_row(row![ Fcc->"reserved", Fyc->format!("0x{:x}", header.reserved), c->"-"]);
+    print_common_header_fields(header.magic, header.cputype, header.cpusubtype, header.filetype, header.ncmds, header.sizeofcmds, header.flags, Some(header.reserved), table);
+}
+
+fn print_common_header_fields(magic: u32, cputype: i32, cpusubtype: i32, filetype: u32, ncmds: u32, sizeofcmds: u32, flags: u32, reserved: Option<u32>, table: &mut Table) {
+    print_header_magic(magic, table);
+    print_header_cputype(cputype, table);
+    print_header_cpusubtype(cpusubtype, table);
+    print_header_filetype(filetype, table);
+    table.add_row(row![ Fcc->"ncmds", Fyc->format!("0x{:x}", ncmds),  c->"-"]);
+    table.add_row(row![ Fcc->"sizeofcmds", Fyc->format!("0x{:x}", sizeofcmds),  c->"-"]);
+    print_header_flags(flags, table);
+    if let Some(r) = reserved {
+        table.add_row(row![ Fcc->"reserved", Fyc->format!("0x{:x}",r), c->"-"]);
+    }
 }
 
 fn print_header_magic(magic: u32, table: &mut Table) {
@@ -134,142 +131,60 @@ fn print_header_flags(flags_combined: u32, table: &mut Table) {
         (MH_NO_HEAP_EXECUTION, "MH_NO_HEAP_EXECUTION", "When this bit is set, the OS will\nrun the main executable with a non-executable\nheap even on platforms (e.g. i386) that don't require it.\nOnly used in MH_EXECUTE filetypes"),
         (MH_APP_EXTENSION_SAFE, "MH_APP_EXTENSION_SAFE", "The code was linked for use in an\napplication extension"),
     ];
-
     let mut decomposed_flags = Vec::new();
     let mut flags_table = Table::new();
-
     for (flag, name, description) in flags_to_strings.iter() {
         if flags_combined & flag != 0 {
             decomposed_flags.push(*name);
             flags_table.add_row(row![*name, *description]);
         }
     }
-
     table.add_row(row![Fcc->"flags", Fyc->format!("0x{:x}\n({})", flags_combined, format!("{}", decomposed_flags.join(" | "))), c->flags_table]);
 }
 
 pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<Vec<Section>>, Vec<LcStr>)) {
     let mut table = Table::new();
-    table.add_row(row![FBbc->"Load Commands", c->"-", c->"-"]);
-    table.add_row(row![Bbbc=>"Field", "Value", "Extra Info"]);
 
+    print_common_title("Load Commands", &mut table);
     for (index, load_command) in load_commands.0.iter().enumerate() {
         table.add_row(row![Fmbc->format!("Load Command #{}", index), c->"-", c->"-"]);
         match load_command {
             LoadCommand::SegmentCommand(command) => {
                 match command {
-                    SegmentCommand::SEG32(command) => {
-                        print_segment_command32(command, &mut table);
-                    }
-                    SegmentCommand::SEG64(command) => {
-                        print_segment_command64(command, &mut table);
-                    }
+                    SegmentCommand::SEG32(command) => print_segment_command32(command, &mut table),
+                    SegmentCommand::SEG64(command) => print_segment_command64(command, &mut table),
                 }
                 print_sections_for_segment(&load_commands.1[index], &mut table);
             }
-            LoadCommand::DylibCommand(command) => unsafe {
-                print_dylib_command(command, &load_commands.2[index] ,&mut table);
-            }
-            LoadCommand::SubFrameWorkCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"umbrella (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
-            }
-            LoadCommand::SubClientCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"client (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
-            }
-            LoadCommand::SubUmbrellaCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"sub_umbrella (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
-            }
-            LoadCommand::SubLibraryCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"sub_library (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
-            }
+            LoadCommand::DylibCommand(command) => unsafe { print_dylib_command(command, String::from_utf8(load_commands.2[index].clone()).unwrap() ,&mut table) },
+            LoadCommand::SubFrameWorkCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "umbrella", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
+            LoadCommand::SubClientCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "client", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
+            LoadCommand::SubUmbrellaCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "sub_umbrella", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
+            LoadCommand::SubLibraryCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "sub_library", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
             LoadCommand::PreboundDylibCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
                 // TODO: this is problematic because this command has 2 lc_str in its LcStr struct (2 in one Vec<u8>) printing should be different.
             }
-            LoadCommand::DylinkerCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"name (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
-            }
+            LoadCommand::DylinkerCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "name", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
             LoadCommand::ThreadCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
                 // TODO: implement this after we manage to make it work in parser.rs as well.
             }
             LoadCommand::RoutinesCommand(command) => {
                 match command {
-                    RoutinesCommand::RTN32(command) => {
-                        print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                        table.add_row(row![ Fcc->"init_address", Fyc->format!("0x{:x}", command.init_address),  c->"-"]);
-                        table.add_row(row![ Fcc->"init_module", Fyc->format!("0x{:x}", command.init_module),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved1", Fyc->format!("0x{:x}", command.reserved1),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved2", Fyc->format!("0x{:x}", command.reserved2),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved3", Fyc->format!("0x{:x}", command.reserved3),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved4", Fyc->format!("0x{:x}", command.reserved4),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved5", Fyc->format!("0x{:x}", command.reserved5),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved6", Fyc->format!("0x{:x}", command.reserved6),  c->"-"]);
-
-                    }
-                    RoutinesCommand::RTN64(command) => {
-                        print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                        table.add_row(row![ Fcc->"init_address", Fyc->format!("0x{:x}", command.init_address),  c->"-"]);
-                        table.add_row(row![ Fcc->"init_module", Fyc->format!("0x{:x}", command.init_module),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved1", Fyc->format!("0x{:x}", command.reserved1),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved2", Fyc->format!("0x{:x}", command.reserved2),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved3", Fyc->format!("0x{:x}", command.reserved3),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved4", Fyc->format!("0x{:x}", command.reserved4),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved5", Fyc->format!("0x{:x}", command.reserved5),  c->"-"]);
-                        table.add_row(row![ Fcc->"reserved6", Fyc->format!("0x{:x}", command.reserved6),  c->"-"]);
-                    }
+                    RoutinesCommand::RTN32(command) => print_routines_command_32(command, &mut table),
+                    RoutinesCommand::RTN64(command) => print_routines_command_64(command, &mut table),
                 }
             }
-            LoadCommand::SymtabCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"symoff", Fyc->format!("0x{:x}", command.symoff),  c->"-"]);
-                table.add_row(row![ Fcc->"nsyms", Fyc->format!("0x{:x}", command.nsyms),  c->"-"]);
-                table.add_row(row![ Fcc->"stroff", Fyc->format!("0x{:x}", command.stroff),  c->"-"]);
-                table.add_row(row![ Fcc->"strsize", Fyc->format!("0x{:x}", command.strsize),  c->"-"]);
-            }
-            LoadCommand::DynSymtabCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"ilocalsym", Fyc->format!("0x{:x}", command.ilocalsym),  c->"-"]);
-                table.add_row(row![ Fcc->"nlocalsym", Fyc->format!("0x{:x}", command.nlocalsym),  c->"-"]);
-                table.add_row(row![ Fcc->"iextdefsym", Fyc->format!("0x{:x}", command.iextdefsym),  c->"-"]);
-                table.add_row(row![ Fcc->"nextdefsym", Fyc->format!("0x{:x}", command.nextdefsym),  c->"-"]);
-                table.add_row(row![ Fcc->"iundefsym", Fyc->format!("0x{:x}", command.iundefsym),  c->"-"]);
-                table.add_row(row![ Fcc->"nundefsym", Fyc->format!("0x{:x}", command.nundefsym),  c->"-"]);
-                table.add_row(row![ Fcc->"tocoff", Fyc->format!("0x{:x}", command.tocoff),  c->"-"]);
-                table.add_row(row![ Fcc->"ntoc", Fyc->format!("0x{:x}", command.ntoc),  c->"-"]);
-                table.add_row(row![ Fcc->"modtaboff", Fyc->format!("0x{:x}", command.modtaboff),  c->"-"]);
-                table.add_row(row![ Fcc->"nmodtab", Fyc->format!("0x{:x}", command.nmodtab),  c->"-"]);
-                table.add_row(row![ Fcc->"extrefsymoff", Fyc->format!("0x{:x}", command.extrefsymoff),  c->"-"]);
-                table.add_row(row![ Fcc->"nextrefsyms", Fyc->format!("0x{:x}", command.nextrefsyms),  c->"-"]);
-                table.add_row(row![ Fcc->"indirectsymoff", Fyc->format!("0x{:x}", command.indirectsymoff),  c->"-"]);
-                table.add_row(row![ Fcc->"nindirectsyms", Fyc->format!("0x{:x}", command.nindirectsyms),  c->"-"]);
-                table.add_row(row![ Fcc->"extreloff", Fyc->format!("0x{:x}", command.extreloff),  c->"-"]);
-                table.add_row(row![ Fcc->"nextrel", Fyc->format!("0x{:x}", command.nextrel),  c->"-"]);
-                table.add_row(row![ Fcc->"locreloff", Fyc->format!("0x{:x}", command.locreloff),  c->"-"]);
-                table.add_row(row![ Fcc->"nlocrel", Fyc->format!("0x{:x}", command.nlocrel),  c->"-"]);
-            }
-            LoadCommand::TwoLevelHintsCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", command.offset),  c->"-"]);
-                table.add_row(row![ Fcc->"nhints", Fyc->format!("0x{:x}", command.nhints),  c->"-"]);
-            }
-            LoadCommand::PrebindCksumCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"cksum", Fyc->format!("0x{:x}", command.cksum),  c->"-"]);
-            }
+            LoadCommand::SymtabCommand(command) => print_symtab_command(command, &mut table),
+            LoadCommand::DynSymtabCommand(command) => print_dynsymtab_command(command, &mut table),
+            LoadCommand::TwoLevelHintsCommand(command) => print_two_level_hints_command(command, &mut table),
+            LoadCommand::PrebindCksumCommand(command) => print_prebind_cksum_command(command, &mut table),
             LoadCommand::UuidCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
                 //TODO print as bytes...
             }
-            LoadCommand::RpathCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-                table.add_row(row![ Fcc->"path (lc_str)", Fyc->"-",  c->String::from_utf8(load_commands.2[index].clone()).unwrap()]);
-            }
+            LoadCommand::RpathCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "path", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
             LoadCommand::LinkeditDataCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
                 table.add_row(row![ Fcc->"dataoff", Fyc->format!("0x{:x}", command.dataoff),  c->"-"]);
@@ -326,9 +241,7 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<Vec<Section>>,
                 table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", command.offset),  c->"-"]);
                 table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", command.size),  c->"-"]);
             }
-            LoadCommand::IdentCommand(command) => {
-                print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
-            }
+            LoadCommand::IdentCommand(command) => print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table),
             LoadCommand::EntryPointCommand(command) => {
                 print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
                 table.add_row(row![ Fcc->"entryoff", Fyc->format!("0x{:x}", command.entryoff),  c->"-"]);
@@ -351,29 +264,24 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<Vec<Section>>,
 }
 
 fn print_segment_command32(command: &SegmentCommand32, table: &mut Table) {
-    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
-    print_segname_or_sectname_bytes_array(&command.segname, table);
-    table.add_row(row![ Fcc->"vmaddr", Fyc->format!("0x{:x}", command.vmaddr),  c->"-"]);
-    table.add_row(row![ Fcc->"vmsize", Fyc->format!("0x{:x}", command.vmsize),  c->"-"]);
-    table.add_row(row![ Fcc->"fileoff", Fyc->format!("0x{:x}", command.fileoff),  c->"-"]);
-    table.add_row(row![ Fcc->"filesize", Fyc->format!("0x{:x}", command.filesize),  c->"-"]);
-    print_segment_maxprot_or_initprot(command.maxprot, table);
-    print_segment_maxprot_or_initprot(command.initprot, table);
-    table.add_row(row![ Fcc->"nsects", Fyc->format!("0x{:x}", command.nsects),  c->"-"]);
-    print_segment_flags(command.flags, table);
+    print_common_segment_fields(command.cmd, command.cmdsize, &command.segname, command.vmaddr as u64, command.vmsize as u64, command.fileoff as u64, command.filesize as u64, command.nsects, command.maxprot, command.initprot, command.flags, table);
 }
 
 fn print_segment_command64(command: &SegmentCommand64, table: &mut Table) {
-    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
-    print_segname_or_sectname_bytes_array(&command.segname, table);
-    table.add_row(row![ Fcc->"vmaddr", Fyc->format!("0x{:x}", command.vmaddr),  c->"-"]);
-    table.add_row(row![ Fcc->"vmsize", Fyc->format!("0x{:x}", command.vmsize),  c->"-"]);
-    table.add_row(row![ Fcc->"fileoff", Fyc->format!("0x{:x}", command.fileoff),  c->"-"]);
-    table.add_row(row![ Fcc->"filesize", Fyc->format!("0x{:x}", command.filesize),  c->"-"]);
-    print_segment_maxprot_or_initprot(command.maxprot, table);
-    print_segment_maxprot_or_initprot(command.initprot, table);
-    table.add_row(row![ Fcc->"nsects", Fyc->format!("0x{:x}", command.nsects),  c->"-"]);
-    print_segment_flags(command.flags, table);
+    print_common_segment_fields(command.cmd, command.cmdsize, &command.segname, command.vmaddr, command.vmsize, command.fileoff, command.filesize, command.nsects, command.maxprot, command.initprot, command.flags, table);
+}
+
+fn print_common_segment_fields(cmd: u32, cmdsize: u32, segname: &[u8], vmaddr: u64, vmsize: u64, fileoff: u64, filesize: u64, nsects: u32, maxprot: i32, initprot: i32,flags: u32, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(cmd, cmdsize, table);
+    print_segname_or_sectname_bytes_array(segname, table);
+    table.add_row(row![Fcc->"vmaddr", Fyc->format!("0x{:x}", vmaddr), c->"-"]);
+    table.add_row(row![Fcc->"vmsize", Fyc->format!("0x{:x}", vmsize), c->"-"]);
+    table.add_row(row![Fcc->"fileoff", Fyc->format!("0x{:x}", fileoff), c->"-"]);
+    table.add_row(row![Fcc->"filesize", Fyc->format!("0x{:x}", filesize), c->"-"]);
+    print_segment_maxprot_or_initprot(maxprot, table);
+    print_segment_maxprot_or_initprot(initprot, table);
+    table.add_row(row![Fcc->"nsects", Fyc->format!("0x{:x}", nsects), c->"-"]);
+    print_segment_flags(flags, table);
 }
 
 fn print_segname_or_sectname_bytes_array(bytes: &[u8], table: &mut Table) {
@@ -388,9 +296,7 @@ fn print_segname_or_sectname_bytes_array(bytes: &[u8], table: &mut Table) {
         }
     }
     result.push(']');
-
     let as_string =  String::from_utf8(bytes.to_vec()).unwrap();
-
     table.add_row(row![ Fcc->"segname", Fyc->format!("{}", result),  c->as_string]);
 }
 
@@ -400,10 +306,8 @@ fn print_segment_maxprot_or_initprot(prot: i32, table: &mut Table) {
         (VM_PROT_WRITE, "VM_PROT_WRITE", "w"),
         (VM_PROT_EXECUTE, "VM_PROT_EXECUTE", "x"),
     ];
-
     let mut decomposed_flags = Vec::new();
     let mut decomposed_descriptions = Vec::new();
-
     for (flag, name, description) in flags_to_strings.iter() {
         if prot & flag != 0 {
             decomposed_flags.push(*name);
@@ -415,7 +319,6 @@ fn print_segment_maxprot_or_initprot(prot: i32, table: &mut Table) {
     if decomposed_flags.is_empty() {
         decomposed_flags.push("VM_PROT_NONE")
     }
-
     table.add_row(row![ Fcc->"maxprot", Fyc->format!("{}\n({})", prot, decomposed_flags.join(" | ")),  c->format!("{}", decomposed_descriptions.join(""))]);
 }
 
@@ -426,17 +329,14 @@ fn print_segment_flags(flags_combined: u32, table: &mut Table) {
         (SG_NORELOC, "SG_NORELOC", "this segment has nothing that was relocated\nin it and nothing relocated to it, that is\nit maybe safely replaced without relocation"),
         (SG_PROTECTED_VERSION_1, "SG_PROTECTED_VERSION_1", "This segment is protected.  If the\nsegment starts at file offset 0, the\nfirst page of the segment is not\nprotected.  All other pages of the\nsegment are protected."),
     ];
-
     let mut decomposed_flags = Vec::new();
     let mut flags_table = Table::new();
-
     for (flag, name, description) in flags_to_strings.iter() {
         if flags_combined & flag != 0 {
             decomposed_flags.push(*name);
             flags_table.add_row(row![*name, *description]);
         }
     }
-
     if decomposed_flags.is_empty() {
         table.add_row(row![ Fcc->"flags", Fyc->format!("0x{:x}", flags_combined), c->"-"]);
     } else {
@@ -455,35 +355,31 @@ fn print_sections_for_segment(sections: &Vec<Section>, table: &mut Table) {
 }
 
 fn print_section32(section: &Section32, table: &mut Table) {
-    print_segname_or_sectname_bytes_array(&section.sectname, table);
-    print_segname_or_sectname_bytes_array(&section.segname, table);
-    table.add_row(row![ Fcc->"addr", Fyc->format!("0x{:x}", section.addr),  c->"-"]);
-    table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", section.size),  c->"-"]);
-    table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", section.offset),  c->"-"]);
-    table.add_row(row![ Fcc->"align", Fyc->format!("0x{:x}", section.align),  c->"-"]);
-    table.add_row(row![ Fcc->"reloff", Fyc->format!("0x{:x}", section.reloff),  c->"-"]);
-    table.add_row(row![ Fcc->"nreloc", Fyc->format!("0x{:x}", section.nreloc),  c->"-"]);
-    table.add_row(row![ Fcc->"flags", Fyc->format!("0x{:x}", section.flags),  c->"-"]);
-    table.add_row(row![ Fcc->"reserved1", Fyc->format!("0x{:x}", section.reserved1),  c->"-"]);
-    table.add_row(row![ Fcc->"reserved2", Fyc->format!("0x{:x}", section.reserved2),  c->"-"]);
+    print_common_section_fields(&section.sectname, &section.segname, section.addr as u64, section.size as u64, section.offset, section.align, section.reloff, section.nreloc, section.flags, section.reserved1, section.reserved2, None, table);
 }
 
 fn print_section64(section: &Section64, table: &mut Table) {
-    print_segname_or_sectname_bytes_array(&section.sectname, table);
-    print_segname_or_sectname_bytes_array(&section.segname, table);
-    table.add_row(row![ Fcc->"addr", Fyc->format!("0x{:x}", section.addr),  c->"-"]);
-    table.add_row(row![ Fcc->"size", Fyc->format!("0x{:x}", section.size),  c->"-"]);
-    table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", section.offset),  c->"-"]);
-    table.add_row(row![ Fcc->"align", Fyc->format!("0x{:x}", section.align),  c->"-"]);
-    table.add_row(row![ Fcc->"reloff", Fyc->format!("0x{:x}", section.reloff),  c->"-"]);
-    table.add_row(row![ Fcc->"nreloc", Fyc->format!("0x{:x}", section.nreloc),  c->"-"]);
-    table.add_row(row![ Fcc->"flags", Fyc->format!("0x{:x}", section.flags),  c->"-"]);
-    table.add_row(row![ Fcc->"reserved1", Fyc->format!("0x{:x}", section.reserved1),  c->"-"]);
-    table.add_row(row![ Fcc->"reserved2", Fyc->format!("0x{:x}", section.reserved2),  c->"-"]);
-    table.add_row(row![ Fcc->"reserved3", Fyc->format!("0x{:x}", section.reserved3),  c->"-"]);
+    print_common_section_fields(&section.sectname, &section.segname, section.addr, section.size, section.offset, section.align, section.reloff, section.nreloc, section.flags, section.reserved1, section.reserved2, None, table);
 }
 
-unsafe fn print_dylib_command(command: &DylibCommand, lc_str: &LcStr, mut table: &mut Table) {
+fn print_common_section_fields(sectname: &[u8], segname: &[u8], addr: u64, size: u64, offset: u32, align: u32, reloff: u32, nreloc: u32, flags: u32, reserved1: u32, reserved2: u32, reserved3: Option<u32>, table: &mut Table) {
+    print_segname_or_sectname_bytes_array(sectname, table);
+    print_segname_or_sectname_bytes_array(segname, table);
+    table.add_row(row![Fcc->"addr", Fyc->format!("0x{:x}", addr), c->"-"]);
+    table.add_row(row![Fcc->"size", Fyc->format!("0x{:x}", size), c->"-"]);
+    table.add_row(row![Fcc->"offset", Fyc->format!("0x{:x}", offset), c->"-"]);
+    table.add_row(row![Fcc->"align", Fyc->format!("0x{:x}", align), c->"-"]);
+    table.add_row(row![Fcc->"reloff", Fyc->format!("0x{:x}", reloff), c->"-"]);
+    table.add_row(row![Fcc->"nreloc", Fyc->format!("0x{:x}", nreloc), c->"-"]);
+    table.add_row(row![Fcc->"flags", Fyc->format!("0x{:x}", flags), c->"-"]);
+    table.add_row(row![Fcc->"reserved1", Fyc->format!("0x{:x}", reserved1), c->"-"]);
+    table.add_row(row![Fcc->"reserved2", Fyc->format!("0x{:x}", reserved2), c->"-"]);
+    if let Some(r3) = reserved3 {
+        table.add_row(row![Fcc->"reserved3", Fyc->format!("0x{:x}", r3), c->"-"]);
+    }
+}
+
+unsafe fn print_dylib_command(command: &DylibCommand, lc_str: String, mut table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, &mut table);
     table.add_row(row![Frbc->"struct dylib = {", c->"-", c->"-"]);
     table.add_row(row![ Fcc->"name.offset", Fyc->format!("0x{:x}", command.dylib.name.offset),  c->"-"]);
@@ -491,7 +387,78 @@ unsafe fn print_dylib_command(command: &DylibCommand, lc_str: &LcStr, mut table:
     table.add_row(row![ Fcc->"current_version", Fyc->format!("0x{:x}", command.dylib.current_version),  c->"-"]);
     table.add_row(row![ Fcc->"compatibility_version", Fyc->format!("0x{:x}", command.dylib.compatibility_version),  c->"-"]);
     table.add_row(row![Frbc->"}", c->"-", c->"-"]);
-    table.add_row(row![ Fcc->"name (lc_str)", Fyc->"-",  c->String::from_utf8(lc_str.clone()).unwrap()]);
+    table.add_row(row![ Fcc->"name (lc_str)", Fyc->"-",  c->lc_str]);
+}
+
+fn print_common_lcstr(cmd: u32, cmdsize: u32, lc_str_name: &str, lc_str: String, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(cmd, cmdsize, table);
+    table.add_row(row![ Fcc->format!("{} (lc_str)", lc_str_name), Fyc->"-",  c->lc_str]);
+}
+
+fn print_routines_command_32(command: &RoutinesCommand32, table: &mut Table) {
+    print_common_routines_fields(command.cmd, command.cmdsize, command.init_address as u64, command.init_module as u64, command.reserved1 as u64, command.reserved2 as u64, command.reserved3 as u64, command.reserved4 as u64, command.reserved5 as u64, command.reserved6 as u64, table);
+}
+
+fn print_routines_command_64(command: &RoutinesCommand64, table: &mut Table) {
+    print_common_routines_fields(command.cmd, command.cmdsize, command.init_address, command.init_module, command.reserved1, command.reserved2, command.reserved3, command.reserved4, command.reserved5, command.reserved6, table);
+}
+
+fn print_common_routines_fields(cmd: u32, cmdsize: u32, init_address: u64, init_module: u64, reserved1: u64, reserved2: u64, reserved3: u64, reserved4: u64, reserved5: u64, reserved6: u64, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(cmd, cmdsize, table);
+    table.add_row(row![Fcc->"init_address", Fyc->format!("0x{:x}", init_address), c->"-"]);
+    table.add_row(row![Fcc->"init_module", Fyc->format!("0x{:x}", init_module), c->"-"]);
+    table.add_row(row![Fcc->"reserved1", Fyc->format!("0x{:x}", reserved1), c->"-"]);
+    table.add_row(row![Fcc->"reserved2", Fyc->format!("0x{:x}", reserved2), c->"-"]);
+    table.add_row(row![Fcc->"reserved3", Fyc->format!("0x{:x}", reserved3), c->"-"]);
+    table.add_row(row![Fcc->"reserved4", Fyc->format!("0x{:x}", reserved4), c->"-"]);
+    table.add_row(row![Fcc->"reserved5", Fyc->format!("0x{:x}", reserved5), c->"-"]);
+    table.add_row(row![Fcc->"reserved6", Fyc->format!("0x{:x}", reserved6), c->"-"]);
+}
+
+fn print_symtab_command(command: &SymtabCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"symoff", Fyc->format!("0x{:x}", command.symoff),  c->"-"]);
+    table.add_row(row![ Fcc->"nsyms", Fyc->format!("0x{:x}", command.nsyms),  c->"-"]);
+    table.add_row(row![ Fcc->"stroff", Fyc->format!("0x{:x}", command.stroff),  c->"-"]);
+    table.add_row(row![ Fcc->"strsize", Fyc->format!("0x{:x}", command.strsize),  c->"-"]);
+}
+
+fn print_dynsymtab_command(command: &DynSymtabCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"ilocalsym", Fyc->format!("0x{:x}", command.ilocalsym),  c->"-"]);
+    table.add_row(row![ Fcc->"nlocalsym", Fyc->format!("0x{:x}", command.nlocalsym),  c->"-"]);
+    table.add_row(row![ Fcc->"iextdefsym", Fyc->format!("0x{:x}", command.iextdefsym),  c->"-"]);
+    table.add_row(row![ Fcc->"nextdefsym", Fyc->format!("0x{:x}", command.nextdefsym),  c->"-"]);
+    table.add_row(row![ Fcc->"iundefsym", Fyc->format!("0x{:x}", command.iundefsym),  c->"-"]);
+    table.add_row(row![ Fcc->"nundefsym", Fyc->format!("0x{:x}", command.nundefsym),  c->"-"]);
+    table.add_row(row![ Fcc->"tocoff", Fyc->format!("0x{:x}", command.tocoff),  c->"-"]);
+    table.add_row(row![ Fcc->"ntoc", Fyc->format!("0x{:x}", command.ntoc),  c->"-"]);
+    table.add_row(row![ Fcc->"modtaboff", Fyc->format!("0x{:x}", command.modtaboff),  c->"-"]);
+    table.add_row(row![ Fcc->"nmodtab", Fyc->format!("0x{:x}", command.nmodtab),  c->"-"]);
+    table.add_row(row![ Fcc->"extrefsymoff", Fyc->format!("0x{:x}", command.extrefsymoff),  c->"-"]);
+    table.add_row(row![ Fcc->"nextrefsyms", Fyc->format!("0x{:x}", command.nextrefsyms),  c->"-"]);
+    table.add_row(row![ Fcc->"indirectsymoff", Fyc->format!("0x{:x}", command.indirectsymoff),  c->"-"]);
+    table.add_row(row![ Fcc->"nindirectsyms", Fyc->format!("0x{:x}", command.nindirectsyms),  c->"-"]);
+    table.add_row(row![ Fcc->"extreloff", Fyc->format!("0x{:x}", command.extreloff),  c->"-"]);
+    table.add_row(row![ Fcc->"nextrel", Fyc->format!("0x{:x}", command.nextrel),  c->"-"]);
+    table.add_row(row![ Fcc->"locreloff", Fyc->format!("0x{:x}", command.locreloff),  c->"-"]);
+    table.add_row(row![ Fcc->"nlocrel", Fyc->format!("0x{:x}", command.nlocrel),  c->"-"]);
+}
+
+fn print_two_level_hints_command(command: &TwoLevelHintsCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"offset", Fyc->format!("0x{:x}", command.offset),  c->"-"]);
+    table.add_row(row![ Fcc->"nhints", Fyc->format!("0x{:x}", command.nhints),  c->"-"]);
+}
+
+fn print_prebind_cksum_command(command: &PrebindCksumCommand, table: &mut Table) {
+    print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
+    table.add_row(row![ Fcc->"cksum", Fyc->format!("0x{:x}", command.cksum),  c->"-"]);
+}
+
+fn print_common_title(title: &str, table: &mut Table) {
+    table.add_row(row![FBbc->title, c->"-", c->"-"]);
+    table.add_row(row![Bbbc=>"Field", "Value", "Extra Info"]);
 }
 
 fn print_lc_cmd_and_cmdsize(cmd: u32, cmdsize: u32, table: &mut Table) {
@@ -553,4 +520,3 @@ fn print_lc_cmd_and_cmdsize(cmd: u32, cmdsize: u32, table: &mut Table) {
     table.add_row(row![ Fcc->"cmd", Fyc->format!("0x{:x}\n({})", cmd, cmd_string),  c->"-"]);
     table.add_row(row![ Fcc->"cmdsize", Fyc->format!("0x{:x}", cmdsize),  c->"-"]);
 }
-
