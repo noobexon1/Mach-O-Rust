@@ -13,6 +13,7 @@ mod memory_utils;
 mod parser;
 mod printer;
 mod error;
+mod symbols;
 
 /// A command-line tool written in Rust to view and explore mach-o files.
 #[derive(Parser)]
@@ -26,7 +27,7 @@ struct Args {
     #[arg(short, long, required = false)]
     interactive: bool,
     /// Print mach-o header
-    #[arg(short = 'e', long, required = false)]
+    #[arg(short = 'H', long, required = false)]
     header: bool,
     /// Print mach-o load commands
     #[arg(short, long, required = false)]
