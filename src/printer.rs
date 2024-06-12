@@ -165,7 +165,7 @@ pub fn print_load_commands(load_commands: &(Vec<LoadCommand>, Vec<Vec<Section>>,
             LoadCommand::SubClientCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "client", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
             LoadCommand::SubUmbrellaCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "sub_umbrella", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
             LoadCommand::SubLibraryCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "sub_library", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
-            LoadCommand::PreboundDylibCommand(command) => print_prebound_dylib_command(command, &mut table),
+            LoadCommand::PreboundDylibCommand(command) => print_prebound_dylib_command(command, &load_commands.2[index], &mut table),
             LoadCommand::DylinkerCommand(command) => print_common_lcstr(command.cmd, command.cmdsize, "name", String::from_utf8(load_commands.2[index].clone()).unwrap(), &mut table),
             LoadCommand::ThreadCommand(command) => print_thread_command(command, &mut table),
             LoadCommand::RoutinesCommand(command) => {
@@ -313,17 +313,18 @@ unsafe fn print_dylib_command(command: &DylibCommand, lc_str: String, mut table:
     table.add_row(row![ Fcc->"name (lc_str)", Fyc->"-",  c->lc_str]);
 }
 
-fn print_prebound_dylib_command(command: &PreboundDylibCommand, table: &mut Table) {
+fn print_prebound_dylib_command(command: &PreboundDylibCommand, lc_str: &LcStr, table: &mut Table) {
     print_lc_cmd_and_cmdsize(command.cmd, command.cmdsize, table);
     table.add_row(row![ Fcc->"nmodules", Fyc->format!("0x{:x}", command.nmodules),  c->"-"]);
-    /*
-    the Vec<LcStr> here has 2 parts:
-        1) the path to the library.
-        2) a bit vector with size of nmodules to indicate if bound or not.
-    to print this calculate the remaining size and then print (remaining_size - nmodules) to get part (1).
-    then preint the rest as bit vector.
-    */
-    // TODO: implement according to comment above...
+    let split_index = lc_str.len() - command.nmodules as usize;
+    let (name, linked_modules) = split_lc_str_at(lc_str, split_index);
+    table.add_row(row![ Fcc->"name (lc_str)", Fyc->"-",  c->String::from_utf8(name).unwrap()]);
+    print_bytes_array("linked_modules (lc_str)", &linked_modules, table);
+}
+
+fn split_lc_str_at(lc_str: &LcStr, index: usize) -> (LcStr, LcStr) {
+    let (first, second) = lc_str.split_at(index);
+    (LcStr::from(first), LcStr::from(second))
 }
 
 fn print_thread_command(command: &ThreadCommand, table: &mut Table) {

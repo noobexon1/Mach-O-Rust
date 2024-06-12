@@ -8,7 +8,7 @@ use crate::error::AppError;
 use crate::header::*;
 use crate::load_commands::*;
 use crate::mach_o::MachO;
-use crate::memory_utils::{advance_to_next_load_command, get_file_offset};
+use crate::memory_utils::*;
 
 pub fn parse<R: Read + Seek>(file: &mut R) -> Result<MachO, AppError> {
     let magic = file.read_u32::<BigEndian>()?;
