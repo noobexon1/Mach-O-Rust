@@ -53,11 +53,11 @@ fn run(args: &Args) -> Result<(), AppError> {
     }
 
     if args.header {
-        printer::print_header(&mach_o.header);
+        printer::print_header(&mach_o.header.unwrap());
     }
 
     if args.load_commands {
-        printer::print_load_commands(&mach_o.load_commands);
+        printer::print_load_commands(&mach_o.load_commands.unwrap());
     }
 
     Ok(())

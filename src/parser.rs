@@ -14,24 +14,25 @@ pub fn parse<R: Read + Seek>(file: &mut R) -> Result<MachO, AppError> {
     let magic = file.read_u32::<BigEndian>()?;
     check_magic_number(magic)?;
 
-    let (header, load_commands) = match magic {
+    let mut mach_o = MachO::new();
+
+    match magic {
         MH_MAGIC | MH_MAGIC_64 => {
             let header = parse_header::<R, BigEndian>(file, magic)?;
-            let load_commands = parse_load_commands::<R, BigEndian>(file, &header)?;
-            (header, load_commands)
+            mach_o.header = Some(header);
+            let load_commands = parse_load_commands::<R, BigEndian>(file, mach_o.header.as_ref().unwrap())?;
+            mach_o.load_commands = Some(load_commands);
         },
         MH_CIGAM | MH_CIGAM_64 => {
             let header = parse_header::<R, LittleEndian>(file, magic)?;
-            let load_commands = parse_load_commands::<R, LittleEndian>(file, &header)?;
-            (header, load_commands)
+            mach_o.header = Some(header);
+            let load_commands = parse_load_commands::<R, LittleEndian>(file, mach_o.header.as_ref().unwrap())?;
+            mach_o.load_commands = Some(load_commands);
         },
         _ => unreachable!(),
     };
 
-    Ok(MachO {
-        header,
-        load_commands,
-    })
+    Ok(mach_o)
 }
 
 fn check_magic_number(magic: u32) -> Result<(), AppError> {

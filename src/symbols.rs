@@ -9,7 +9,6 @@ pub struct SymTab {
     str_tbl_size: u32
 }
 
-
 #[derive(Debug)]
 pub enum Nlist {
     NL32(Nlist32),
