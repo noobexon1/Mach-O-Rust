@@ -14,32 +14,20 @@ pub fn parse<R: Read + Seek>(file: &mut R) -> Result<MachO, AppError> {
     let magic = file.read_u32::<BigEndian>()?;
     check_magic_number(magic)?;
 
-    let mut mach_o = MachO::new();
-
     match magic {
-        MH_MAGIC | MH_MAGIC_64 => {
-            let header = parse_header::<R, BigEndian>(file, magic)?;
-            mach_o.header = Some(header);
-            let load_commands = parse_load_commands::<R, BigEndian>(file, mach_o.header.as_ref().unwrap())?;
-            mach_o.load_commands = Some(load_commands);
-        },
-        MH_CIGAM | MH_CIGAM_64 => {
-            let header = parse_header::<R, LittleEndian>(file, magic)?;
-            mach_o.header = Some(header);
-            let load_commands = parse_load_commands::<R, LittleEndian>(file, mach_o.header.as_ref().unwrap())?;
-            mach_o.load_commands = Some(load_commands);
-        },
+        MH_MAGIC | MH_MAGIC_64 => parse_with_endian::<R, BigEndian>(file, magic),
+        MH_CIGAM | MH_CIGAM_64 => parse_with_endian::<R, LittleEndian>(file, magic),
         _ => unreachable!(),
-    };
-
-    Ok(mach_o)
+    }
 }
 
-fn check_magic_number(magic: u32) -> Result<(), AppError> {
-    match magic {
-        MH_MAGIC | MH_MAGIC_64 | MH_CIGAM | MH_CIGAM_64 => Ok(()),
-        _ => Err(AppError::from(io::Error::new(io::ErrorKind::InvalidData, "Invalid Mach-O magic number")))
-    }
+fn parse_with_endian<R: Read + Seek, E: ByteOrder>(file: &mut R, magic: u32) -> Result<MachO, AppError> {
+    let mut mach_o = MachO::new();
+    let header = parse_header::<R, E>(file, magic)?;
+    mach_o.header = Some(header);
+    let load_commands = parse_load_commands::<R, E>(file, mach_o.header.as_ref().unwrap())?;
+    mach_o.load_commands = Some(load_commands);
+    Ok(mach_o)
 }
 
 fn parse_header<R: Read + Seek, E: ByteOrder>(file: &mut R, magic: u32) -> Result<MachHeader, AppError> {
@@ -157,4 +145,11 @@ fn parse_load_command_string<R: Read + Seek, E: ByteOrder>(file: &mut R, load_co
 
 fn get_load_command_remaining_size(lc_offset: u64, lc_size: u64, file_offset: u64) -> Result<u64, AppError> {
     Ok((lc_offset + lc_size) - file_offset)
+}
+
+fn check_magic_number(magic: u32) -> Result<(), AppError> {
+    match magic {
+        MH_MAGIC | MH_MAGIC_64 | MH_CIGAM | MH_CIGAM_64 => Ok(()),
+        _ => Err(AppError::from(io::Error::new(io::ErrorKind::InvalidData, "Invalid Mach-O magic number")))
+    }
 }
