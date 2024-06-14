@@ -1,5 +1,5 @@
 use std::io;
-use std::io::{Read, Seek};
+use std::io::{Read, Seek, SeekFrom};
 
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt};
 
@@ -9,6 +9,7 @@ use crate::header::*;
 use crate::load_commands::*;
 use crate::mach_o::MachO;
 use crate::memory_utils::*;
+use crate::symbols::*;
 
 pub fn parse<R: Read + Seek>(file: &mut R) -> Result<MachO, AppError> {
     let magic = file.read_u32::<BigEndian>()?;
@@ -21,15 +22,29 @@ pub fn parse<R: Read + Seek>(file: &mut R) -> Result<MachO, AppError> {
     }
 }
 
+fn check_magic_number(magic: u32) -> Result<(), AppError> {
+    match magic {
+        MH_MAGIC | MH_MAGIC_64 | MH_CIGAM | MH_CIGAM_64 => Ok(()),
+        _ => Err(AppError::from(io::Error::new(io::ErrorKind::InvalidData, "Invalid Mach-O magic number")))
+    }
+}
+
 fn parse_with_endian<R: Read + Seek, E: ByteOrder>(file: &mut R, magic: u32) -> Result<MachO, AppError> {
     let mut mach_o = MachO::new();
+
     let header = parse_header::<R, E>(file, magic)?;
     mach_o.header = Some(header);
+
     let load_commands = parse_load_commands::<R, E>(file, mach_o.header.as_ref().unwrap())?;
     mach_o.load_commands = Some(load_commands);
+
+    let symtab = parse_symtab::<R, E>(file, &mach_o.load_commands.as_ref().unwrap().0, magic)?;
+    mach_o.symtab = Some(symtab);
+
     Ok(mach_o)
 }
 
+// TODO: remove boilerplate same as i did in symbols.rs
 fn parse_header<R: Read + Seek, E: ByteOrder>(file: &mut R, magic: u32) -> Result<MachHeader, AppError> {
     match magic {
         MH_MAGIC | MH_CIGAM => MachHeader32::from_file::<R, E>(file, magic),
@@ -39,9 +54,9 @@ fn parse_header<R: Read + Seek, E: ByteOrder>(file: &mut R, magic: u32) -> Resul
 }
 
 fn parse_load_commands<R: Read + Seek, E: ByteOrder>(file: &mut R, header: &MachHeader) -> Result<(Vec<LoadCommand>, Vec<Vec<Section>>, Vec<LcStr>), AppError> {
-    let mut load_commands: Vec<LoadCommand> = Vec::new();
-    let mut sections: Vec<Vec<Section>> = Vec::new();
-    let mut load_commands_strings: Vec<LcStr> = Vec::new();
+    let mut load_commands = Vec::new();
+    let mut sections = Vec::new();
+    let mut load_commands_strings = Vec::new();
 
     for _ in 0..header.ncmds() {
         let offset = get_file_offset(file)?;
@@ -96,6 +111,7 @@ fn parse_command<R: Read, E: ByteOrder>(file: &mut R, load_command_prefix: &Load
     }
 }
 
+// TODO: remove boilerplate same as i did in symbols.rs
 fn parse_sections_for_segment<R: Read + Seek, E: ByteOrder>(file: &mut R, load_command: &LoadCommand) -> Result<Vec<Section>, AppError> {
     let mut load_command_sections = Vec::new();
     match load_command {
@@ -147,9 +163,22 @@ fn get_load_command_remaining_size(lc_offset: u64, lc_size: u64, file_offset: u6
     Ok((lc_offset + lc_size) - file_offset)
 }
 
-fn check_magic_number(magic: u32) -> Result<(), AppError> {
-    match magic {
-        MH_MAGIC | MH_MAGIC_64 | MH_CIGAM | MH_CIGAM_64 => Ok(()),
-        _ => Err(AppError::from(io::Error::new(io::ErrorKind::InvalidData, "Invalid Mach-O magic number")))
+// TODO: print symtab to make sure parsing works as intended
+fn parse_symtab<R: Read + Seek, E: ByteOrder>(file: &mut R, load_commands: &Vec<LoadCommand>, magic: u32) -> Result<Symtab, AppError> {
+    let mut symtab = Vec::new();
+    for load_command in load_commands {
+        match load_command {
+            LoadCommand::SymtabCommand(command) => {
+                file.seek(SeekFrom::Start(command.stroff as u64))?;
+                for _ in 0..command.nsyms {
+                    let entry = Nlist::from_file::<R, E>(file, magic)?;
+                    symtab.push(entry);
+                }
+            }
+            _ => {}
+        }
     }
+    Ok(symtab)
 }
+
+
